@@ -30,13 +30,12 @@ export const dealHands = (deck: Deck, playerIds: string[], handSize: number = 5)
   playerIds.forEach(id => {
     players[id] = { hand: [], spreads: [] };
   });
-  const newDeck = [...deck];
   for (let i = 0; i < handSize; i++) {
     for (const id of playerIds) {
-      players[id].hand.push(newDeck.pop()!);
+      players[id].hand.push(deck.pop()!);
     }
   }
-  return { players, remainingDeck: newDeck };
+  return { players, remainingDeck: deck };
 };
 export const isSet = (cards: Card[]): boolean => {
   if (cards.length < 3) return false;
@@ -56,56 +55,62 @@ export const isRun = (cards: Card[]): boolean => {
 export const isValidSpread = (cards: Card[]): boolean => {
   return isSet(cards) || isRun(cards);
 };
-export const findSpreadsInHand = (hand: Hand): { spreads: Spread[], remaining: Hand } => {
+export const findSpreadsInHand = (hand: Hand): Spread[] => {
   const spreads: Spread[] = [];
-  let remainingHand = [...hand];
+  const remainingHand = [...hand];
+  // Find sets
   const ranks: { [key: string]: Card[] } = {};
   remainingHand.forEach(card => {
     if (!ranks[card.rank]) ranks[card.rank] = [];
     ranks[card.rank].push(card);
   });
-  Object.entries(ranks).forEach(([rank, cards]) => {
+  Object.values(ranks).forEach(cards => {
     if (cards.length >= 3) {
-      spreads.push([...cards]);
-      remainingHand = remainingHand.filter(rc => rc.rank !== rank);
+      spreads.push(cards);
+      cards.forEach(c => {
+        const index = remainingHand.findIndex(rc => rc.rank === c.rank && rc.suit === c.suit);
+        if (index > -1) remainingHand.splice(index, 1);
+      });
     }
   });
-  return { spreads, remaining: remainingHand };
+  // This is a simplified version. A full implementation would check for runs, which is more complex.
+  // For this game, we'll stick to sets for AI simplicity.
+  return spreads;
+};
+export const canHitSpread = (card: Card, spread: Spread): boolean => {
+  if (isSet(spread)) {
+    return card.rank === spread[0].rank;
+  }
+  if (isRun(spread)) {
+    if (card.suit !== spread[0].suit) return false;
+    const spreadValues = spread.map(c => RANK_VALUES[c.rank]).sort((a, b) => a - b);
+    const cardValue = RANK_VALUES[card.rank];
+    return cardValue === spreadValues[0] - 1 || cardValue === spreadValues[spreadValues.length - 1] + 1;
+  }
+  return false;
 };
 export const computerPlayerTurn = (gameState: GameState, computerId: string): GameState => {
-  const computer = gameState.players[computerId];
-  if (!computer) return gameState;
-  let newDeck = [...gameState.deck];
-  let newHand = [...computer.hand];
-  let newSpreads = [...computer.spreads];
-  let newDiscardPile = [...gameState.discardPile];
+  let newState = { ...gameState };
+  const computer = newState.players[computerId];
   // 1. Draw
-  if (newDeck.length > 0) {
-    newHand.push(newDeck.pop()!);
-  }
+  newState.deck.length > 0 ? computer.hand.push(newState.deck.pop()!) : void 0;
   // 2. Play Spreads
-  const { spreads: foundSpreads, remaining } = findSpreadsInHand(newHand);
-  if (foundSpreads.length > 0) {
-    newSpreads = [...newSpreads, ...foundSpreads];
-    newHand = remaining;
+  const newSpreads = findSpreadsInHand(computer.hand);
+  if (newSpreads.length > 0) {
+    newSpreads.forEach(spread => {
+      computer.spreads.push(spread);
+      spread.forEach(card => {
+        const index = computer.hand.findIndex(c => c.rank === card.rank && c.suit === card.suit);
+        if (index > -1) computer.hand.splice(index, 1);
+      });
+    });
   }
   // 3. Discard
-  if (newHand.length > 0) {
-    const sortedHand = [...newHand].sort((a, b) => RANK_VALUES[b.rank] - RANK_VALUES[a.rank]);
-    const discard = sortedHand[0];
-    newHand = newHand.filter(c => !(c.rank === discard.rank && c.suit === discard.suit));
-    newDiscardPile = [discard, ...newDiscardPile];
+  if (computer.hand.length > 0) {
+    // Discard highest value card
+    computer.hand.sort((a, b) => RANK_VALUES[b.rank] - RANK_VALUES[a.rank]);
+    const discard = computer.hand.shift()!;
+    newState.discardPile.unshift(discard);
   }
-  return {
-    ...gameState,
-    deck: newDeck,
-    discardPile: newDiscardPile,
-    players: {
-      ...gameState.players,
-      [computerId]: {
-        hand: newHand,
-        spreads: newSpreads,
-      }
-    }
-  };
+  return newState;
 };

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dices, Gem, Trash2 } from 'lucide-react';
+import { Dices, Gem, Trash2, Bird } from 'lucide-react';
 const locations = [
   {
     to: '/location/back-alley',
@@ -25,6 +25,13 @@ const locations = [
     icon: Trash2,
     glitchText: 'D@TA_DUMP',
   },
+  {
+    to: '/location/vultures-nest',
+    title: "The Vulture's Nest",
+    description: 'A quiet corner for a "friendly" game of Tonk. Watch your back, and your cards.',
+    icon: Bird,
+    glitchText: 'VU1TUR3_N3ST',
+  },
 ];
 export function HomePage() {
   return (
@@ -37,17 +44,17 @@ export function HomePage() {
           Your premier digital dive bar for consequence-free bad decisions.
         </p>
       </div>
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 animate-slide-up">
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 animate-slide-up">
         {locations.map((loc) => (
-          <Card key={loc.to} className="bg-black/50 border-ov-primary/20 hover:border-ov-primary/60 transition-all duration-300 transform hover:-translate-y-1 group">
+          <Card key={loc.to} className="bg-black/50 border-ov-primary/20 hover:border-ov-primary/60 transition-all duration-300 transform hover:-translate-y-1 group flex flex-col">
             <CardHeader className="flex-row items-center gap-4 space-y-0">
               <loc.icon className="w-8 h-8 text-ov-primary" />
               <CardTitle className="text-ov-primary font-display uppercase tracking-widest glitch-text" data-text={loc.glitchText}>
                 {loc.title}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-ov-gray mb-6">{loc.description}</p>
+            <CardContent className="flex flex-col flex-1">
+              <p className="text-ov-gray mb-6 flex-1">{loc.description}</p>
               <Button asChild variant="outline" className="w-full bg-transparent border-ov-primary/50 text-ov-primary hover:bg-ov-primary hover:text-black transition-colors duration-300 group-hover:shadow-[0_0_15px_rgba(255,0,229,0.6)]">
                 <Link to={loc.to}>Enter</Link>
               </Button>

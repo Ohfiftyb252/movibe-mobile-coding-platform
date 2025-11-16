@@ -8,11 +8,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import '@/index.css';
 import { HomePage } from '@/pages/HomePage';
-import { LocationPage } from '@/pages/LocationPage';
 import { BackAlleyPage } from '@/pages/BackAlleyPage';
 import { DataDumpPage } from '@/pages/DataDumpPage';
 import { CryptoCarnivalPage } from '@/pages/CryptoCarnivalPage';
 import { InventoryPage } from '@/pages/InventoryPage';
+import { VulturesNestPage } from '@/pages/VulturesNestPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -32,6 +32,11 @@ const router = createBrowserRouter([
   {
     path: "/location/data-dump",
     element: <DataDumpPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/location/vultures-nest",
+    element: <VulturesNestPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {
