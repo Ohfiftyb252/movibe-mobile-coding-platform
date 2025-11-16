@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, FolderGit2, Loader2, Trash2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -35,7 +35,7 @@ import { api } from '@/lib/api-client';
 import type { Project } from '@shared/types';
 import { useProjectStore } from '@/stores/project-store';
 import { Toaster, toast } from '@/components/ui/sonner';
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -44,7 +44,7 @@ const containerVariants = {
     },
   },
 };
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
@@ -172,8 +172,6 @@ export function DashboardPage() {
               {projects.map((project) => (
                 <motion.div key={project.id} variants={itemVariants}>
                   <Card
-                    as={motion.div}
-                    variants={itemVariants}
                     className="hover:shadow-lg hover:-translate-y-1 transition-all duration-200 h-full flex flex-col group relative"
                   >
                     <AlertDialog>
