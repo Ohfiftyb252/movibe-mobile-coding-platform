@@ -1,67 +1,58 @@
-import { motion, Variants } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 interface SlotReelProps {
   symbols: React.ReactNode[];
   finalIndex: number;
   isSpinning: boolean;
   delay: number;
-  tension?: boolean;
-  isGlitching?: boolean;
 }
-export function SlotReel({ symbols, finalIndex, isSpinning, delay, tension = false, isGlitching = false }: SlotReelProps) {
-  const symbolHeight = 112;
+export function SlotReel({ symbols, finalIndex, isSpinning, delay }: SlotReelProps) {
+  const reelHeight = 100; // Corresponds to h-24 in Tailwind (4rem = 64px, but we'll use a number for calculation)
+  const symbolHeight = 100;
   const totalHeight = symbols.length * symbolHeight;
-  const spinVariants: Variants = {
+  const spinVariants = {
     start: {
-      y: [0, -totalHeight * 2.5],
+      y: [0, -totalHeight * 2],
       transition: {
         y: {
-          duration: tension ? 0.3 : 0.8 + delay,
+          duration: 1 + delay,
           repeat: Infinity,
           ease: 'linear',
         },
       },
     },
-    stop: (custom: { finalIndex: number; glitch: boolean }) => ({
-      y: -custom.finalIndex * symbolHeight + (custom.glitch ? 10 : 0),
+    stop: (custom: { finalIndex: number }) => ({
+      y: -custom.finalIndex * symbolHeight,
       transition: {
         y: {
-          duration: tension ? 2.5 : 1.5 + delay, // Weighted feel for normal stops
-          ease: [0.34, 1.56, 0.64, 1],
+          duration: 1.5 + delay,
+          ease: [0.22, 1, 0.36, 1], // easeOutQuint
         },
       },
     }),
   };
   return (
     <div
-      className={cn(
-        "w-24 h-28 md:w-36 md:h-32 overflow-hidden transition-colors duration-300 bg-ov-dark/90 border-2 rounded-2xl flex items-center justify-center relative shadow-inner",
-        isGlitching ? "animate-glitch border-ov-primary bg-ov-primary/10" : "border-ov-primary/20",
-        tension && !isGlitching && "animate-pulse border-yellow-500/40"
-      )}
+      className="w-24 h-24 md:w-32 md:h-32 overflow-hidden bg-ov-dark/50 border-2 border-ov-primary/20 rounded-lg flex items-center justify-center"
+      style={{ height: `${reelHeight}px` }}
     >
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-ov-primary/10 pointer-events-none" />
       <motion.div
         className="flex flex-col"
         variants={spinVariants}
         initial="stop"
         animate={isSpinning ? 'start' : 'stop'}
-        custom={{ finalIndex, glitch: isGlitching }}
+        custom={{ finalIndex }}
       >
-        {[...symbols, ...symbols].map((symbol, i) => (
+        {symbols.map((symbol, i) => (
           <div
             key={i}
-            className={cn(
-              "w-full flex items-center justify-center text-5xl md:text-7xl transition-all duration-300",
-              isGlitching ? "blur-[1px] brightness-150" : "drop-shadow-lg"
-            )}
+            className="w-full flex items-center justify-center text-5xl md:text-6xl"
             style={{ height: `${symbolHeight}px` }}
           >
             {symbol}
           </div>
         ))}
       </motion.div>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 pointer-events-none" />
     </div>
   );
 }

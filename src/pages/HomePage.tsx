@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dices, Gem, Trash2, Bird, Crosshair } from 'lucide-react';
+import { Dices, Gem, Trash2, Bird, Crosshair, Bot } from 'lucide-react';
 const locations = [
   {
     to: '/location/back-alley',
@@ -38,6 +38,13 @@ const locations = [
     description: 'Shoot pixelated ducks for fun and profit. The hit detection is a feature.',
     icon: Crosshair,
     glitchText: 'G@NDER_G@LLERY',
+  },
+  {
+    to: '/location/the-glitch',
+    title: 'The Glitch',
+    description: 'A slot machine that is definitely not a memory leak. Pull the lever.',
+    icon: Bot,
+    glitchText: 'TH3_GL!TCH',
   },
 ];
 export function HomePage() {

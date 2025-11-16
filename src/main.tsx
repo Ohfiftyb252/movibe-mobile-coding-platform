@@ -14,6 +14,7 @@ import { CryptoCarnivalPage } from '@/pages/CryptoCarnivalPage';
 import { InventoryPage } from '@/pages/InventoryPage';
 import { VulturesNestPage } from '@/pages/VulturesNestPage';
 import { GanderGalleryPage } from '@/pages/GanderGalleryPage';
+import { TheGlitchPage } from '@/pages/TheGlitchPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -43,6 +44,11 @@ const router = createBrowserRouter([
   {
     path: "/location/gander-gallery",
     element: <GanderGalleryPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/location/the-glitch",
+    element: <TheGlitchPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {

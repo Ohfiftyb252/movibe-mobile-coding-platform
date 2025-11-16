@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Bird } from 'lucide-react';
 import { useState } from 'react';
 interface DuckProps {
@@ -17,7 +17,7 @@ export function Duck({ id, onShoot, initialX, initialY, duration, direction }: D
       onShoot(id);
     }
   };
-  const variants = {
+  const variants: Variants = {
     fly: {
       x: direction === 'right' ? '110vw' : '-10vw',
       transition: { duration, ease: 'linear' },
