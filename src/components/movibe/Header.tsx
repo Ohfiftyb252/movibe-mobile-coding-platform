@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { PanelLeft, Loader2 } from 'lucide-react';
+import { PanelLeft, Loader2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SheetTrigger } from '@/components/ui/sheet';
 import { useProjectStore } from '@/stores/project-store';
+import { toast } from 'sonner';
 type HeaderProps = {
   isMobile: boolean;
 };
@@ -68,6 +69,10 @@ function EditableProjectName() {
   );
 }
 export function Header({ isMobile }: HeaderProps) {
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Project link copied to clipboard!');
+  };
   return (
     <header className="flex items-center justify-between h-14 px-4 border-b bg-background z-10">
       <div className="flex items-center gap-2">
@@ -77,14 +82,20 @@ export function Header({ isMobile }: HeaderProps) {
       <div className="absolute left-1/2 -translate-x-1/2">
         <SavingIndicator />
       </div>
-      {isMobile && (
-        <SheetTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <PanelLeft className="h-5 w-5" />
-            <span className="sr-only">Toggle File Tree</span>
-          </Button>
-        </SheetTrigger>
-      )}
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={handleShare}>
+          <Share2 className="h-5 w-5" />
+          <span className="sr-only">Share Project</span>
+        </Button>
+        {isMobile && (
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <PanelLeft className="h-5 w-5" />
+              <span className="sr-only">Toggle File Tree</span>
+            </Button>
+          </SheetTrigger>
+        )}
+      </div>
     </header>
   );
 }
