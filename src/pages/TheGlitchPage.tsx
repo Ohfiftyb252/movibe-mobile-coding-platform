@@ -5,7 +5,7 @@ import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Coins, Bot, Gem, Skull } from 'lucide-react';
+import { ArrowLeft, Coins, Bot, Gem, Skull, Hammer } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -22,9 +22,12 @@ const PAYOUTS: { [key: number]: number } = {
   1: 25, // 3 Gems
   3: 77, // 3 Sevens
 };
+const RAGE_QUIT_THRESHOLD = 5;
 export function TheGlitchPage() {
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
+  const recordLoss = usePlayerStore((s) => s.recordLoss);
+  const resetLosses = usePlayerStore((s) => s.resetLosses);
   const [betAmount, setBetAmount] = useState<number | ''>(10);
   const [isSpinning, setIsSpinning] = useState(false);
   const [reels, setReels] = useState([0, 1, 2]);
@@ -70,12 +73,23 @@ export function TheGlitchPage() {
           setGameResult('win');
           setFeedback(`JACKPOT! You won ${winnings.toLocaleString()}!`);
           setOvCoin(player.ovCoin - bet + winnings);
+          resetLosses();
           return;
         }
       }
       setGameResult('loss');
       setFeedback('Try again.');
+      recordLoss();
     }, 3000);
+  };
+  const handleSmash = () => {
+    if (!player) return;
+    const catharsisWinnings = 50;
+    toast.error("You smash the machine in a fit of rage! It spits out a few coins.", {
+      description: `+${catharsisWinnings} O.V. Coin`,
+    });
+    setOvCoin(player.ovCoin + catharsisWinnings);
+    resetLosses();
   };
   const handleBetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -149,6 +163,14 @@ export function TheGlitchPage() {
                 {isSpinning ? 'Spinning...' : 'Pull Lever'}
               </Button>
             </div>
+            {player && player.consecutiveLosses >= RAGE_QUIT_THRESHOLD && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pt-2">
+                <Button size="lg" onClick={handleSmash} disabled={isSpinning} className="w-full h-16 text-2xl font-display bg-red-800 hover:bg-red-700 animate-pulse">
+                  <Hammer className="mr-4" />
+                  SMASH MACHINE
+                </Button>
+              </motion.div>
+            )}
           </div>
         </CardContent>
       </Card>

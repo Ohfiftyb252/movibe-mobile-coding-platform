@@ -26,7 +26,7 @@ function getCeeLoResult(dice: [number, number, number]): CeeLoResult {
     return { outcome: 'win', value: d1, message: `Trips ${d1}s! You Win!` };
   }
   // Automatic loss
-  if (d1 === 1 && d2 === 2 && d3 === 3) return { outcome: 'loss', value: 0, message: '1-2-3! Automatic Loss!' };
+  if (d1 === 1 && d2 === 3) return { outcome: 'loss', value: 0, message: '1-2-3! Automatic Loss!' };
   // Point
   if (d1 === d2) return { outcome: 'point', value: d3, message: `You set a point of ${d3}!` };
   if (d2 === d3) return { outcome: 'point', value: d1, message: `You set a point of ${d1}!` };
@@ -36,6 +36,8 @@ function getCeeLoResult(dice: [number, number, number]): CeeLoResult {
 export function DataDumpPage() {
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
+  const recordLoss = usePlayerStore((s) => s.recordLoss);
+  const resetLosses = usePlayerStore((s) => s.resetLosses);
   const [betAmount, setBetAmount] = useState<number | ''>('');
   const [isRolling, setIsRolling] = useState(false);
   const [dice, setDice] = useState<[number, number, number]>([1, 1, 1]);
@@ -76,11 +78,13 @@ export function DataDumpPage() {
         setGameResult('win');
         setOvCoin(newBalanceAfterBet + bet * 2);
         toast.success(`You won ${bet.toLocaleString()} O.V. Coin!`);
+        resetLosses();
         setIsRolling(false);
       } else if (playerResult.outcome === 'loss') {
         setGameResult('loss');
         setOvCoin(newBalanceAfterBet);
         toast.error(`You lost ${bet.toLocaleString()} O.V. Coin.`);
+        recordLoss();
         setIsRolling(false);
       } else {
         setFeedback(prev => prev + " Now the house rolls...");
@@ -97,11 +101,13 @@ export function DataDumpPage() {
             setFeedback(`House rolls ${houseRoll.join('-')} (${houseResult.message}). You lose.`);
             setOvCoin(newBalanceAfterBet);
             toast.error(`You lost ${bet.toLocaleString()} O.V. Coin.`);
+            recordLoss();
           } else {
             setGameResult('win');
             setFeedback(`House rolls ${houseRoll.join('-')} (${houseResult.message}). You win!`);
             setOvCoin(newBalanceAfterBet + bet * 2);
             toast.success(`You won ${bet.toLocaleString()} O.V. Coin!`);
+            resetLosses();
           }
           setIsRolling(false);
         }, 2000);

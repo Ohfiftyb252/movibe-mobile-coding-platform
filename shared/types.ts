@@ -10,4 +10,5 @@ export interface Player {
   inventory: {
     hats: string[];
   };
+  consecutiveLosses: number;
 }

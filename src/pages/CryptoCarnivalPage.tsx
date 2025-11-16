@@ -14,6 +14,8 @@ type GameState = 'betting' | 'playing' | 'dealer_turn' | 'finished';
 export function CryptoCarnivalPage() {
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
+  const recordLoss = usePlayerStore((s) => s.recordLoss);
+  const resetLosses = usePlayerStore((s) => s.resetLosses);
   const [betAmount, setBetAmount] = useState<number | ''>(10);
   const [gameState, setGameState] = useState<GameState>('betting');
   const [deck, setDeck] = useState<Deck>([]);
@@ -81,11 +83,13 @@ export function CryptoCarnivalPage() {
       case 'player_blackjack':
         setFeedback(`Blackjack! You win ${(bet * 2.5).toLocaleString()}!`);
         setOvCoin(balanceBeforeWinnings + bet * 2.5);
+        resetLosses();
         break;
       case 'player_win':
       case 'dealer_bust':
         setFeedback(`You win ${(bet * 2).toLocaleString()}!`);
         setOvCoin(balanceBeforeWinnings + bet * 2);
+        resetLosses();
         break;
       case 'push':
         setFeedback('Push. Your bet is returned.');
@@ -94,10 +98,13 @@ export function CryptoCarnivalPage() {
       case 'player_bust':
         setFeedback(`Bust! You lose ${bet.toLocaleString()}.`);
         setOvCoin(balanceBeforeWinnings);
+        recordLoss();
         break;
+      case 'dealer_win':
       default:
         setFeedback(`You lose ${bet.toLocaleString()}.`);
         setOvCoin(balanceBeforeWinnings);
+        recordLoss();
         break;
     }
   };

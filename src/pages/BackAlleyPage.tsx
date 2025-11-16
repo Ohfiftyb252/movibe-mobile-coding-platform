@@ -30,6 +30,8 @@ const Coin = ({ isFlipping, result }: { isFlipping: boolean; result: 'heads' | '
 export function BackAlleyPage() {
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
+  const recordLoss = usePlayerStore((s) => s.recordLoss);
+  const resetLosses = usePlayerStore((s) => s.resetLosses);
   const [betAmount, setBetAmount] = useState<number | ''>('');
   const [isFlipping, setIsFlipping] = useState(false);
   const [gameResult, setGameResult] = useState<'win' | 'loss' | null>(null);
@@ -68,10 +70,12 @@ export function BackAlleyPage() {
         setGameResult('win');
         setFeedback(`You won ${(bet * 2).toLocaleString()} O.V. Coin!`);
         setOvCoin(newBalanceAfterBet + bet * 2);
+        resetLosses();
       } else {
         setGameResult('loss');
         setFeedback(`You lost ${bet.toLocaleString()} O.V. Coin. Tough luck.`);
         setOvCoin(newBalanceAfterBet);
+        recordLoss();
       }
       setIsFlipping(false);
     }, 2100);

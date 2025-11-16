@@ -25,6 +25,8 @@ type PlayerState = {
   updatePlayer: (id: string, updates: Partial<Player>) => Promise<void>;
   setOvCoin: (amount: number) => void;
   _setOvCoinAndUpdate: (amount: number) => void;
+  recordLoss: () => void;
+  resetLosses: () => void;
 };
 export const usePlayerStore = create<PlayerState>()(
   immer((set, get) => {
@@ -34,7 +36,11 @@ export const usePlayerStore = create<PlayerState>()(
       try {
         await api<Player>(`/api/player/${player.id}`, {
           method: 'POST',
-          body: JSON.stringify({ ovCoin: player.ovCoin, inventory: player.inventory }),
+          body: JSON.stringify({ 
+            ovCoin: player.ovCoin, 
+            inventory: player.inventory,
+            consecutiveLosses: player.consecutiveLosses,
+          }),
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to sync player data';
@@ -104,6 +110,22 @@ export const usePlayerStore = create<PlayerState>()(
         } else {
           get()._setOvCoinAndUpdate(amount);
         }
+      },
+      recordLoss: () => {
+        set(state => {
+          if (state.player) {
+            state.player.consecutiveLosses += 1;
+          }
+        });
+        debouncedUpdate();
+      },
+      resetLosses: () => {
+        set(state => {
+          if (state.player && state.player.consecutiveLosses > 0) {
+            state.player.consecutiveLosses = 0;
+          }
+        });
+        debouncedUpdate();
       },
     };
   })

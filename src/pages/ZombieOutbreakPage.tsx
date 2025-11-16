@@ -7,7 +7,7 @@ import { ArrowLeft, Coins, Heart, Shield } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { Zombie } from '@/components/Zombie';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 type GameState = 'idle' | 'playing' | 'finished';
 interface ZombieInfo {
   id: number;
@@ -24,13 +24,13 @@ export function ZombieOutbreakPage() {
   const [score, setScore] = useState(0);
   const [wave, setWave] = useState(1);
   const [lives, setLives] = useState(INITIAL_LIVES);
-  const createZombie = (id: number): ZombieInfo => {
+  const createZombie = useCallback((id: number): ZombieInfo => {
     return {
       id,
       initialX: Math.random() * (window.innerWidth * 0.9),
       duration: Math.random() * 3 + (8 - wave * 0.5), // Zombies get faster each wave
     };
-  };
+  }, [wave]);
   const startGame = () => {
     if (!player || player.ovCoin < COST_PER_GAME) {
       toast.error(`You need ${COST_PER_GAME} O.V. Coin to play.`);
@@ -62,7 +62,7 @@ export function ZombieOutbreakPage() {
       }
     }, 1000);
     return () => clearInterval(waveTimer);
-  }, [gameState, wave]);
+  }, [gameState, wave, createZombie, zombies.length]);
   // Zombie Escape Listener
   useEffect(() => {
     if (gameState !== 'playing') return;
