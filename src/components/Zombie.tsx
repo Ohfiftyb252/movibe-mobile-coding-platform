@@ -4,11 +4,10 @@ import { useState } from 'react';
 interface ZombieProps {
   id: number;
   onShoot: (id: number) => void;
-  onEscape: (id: number) => void;
   initialX: number;
   duration: number;
 }
-export function Zombie({ id, onShoot, onEscape, initialX, duration }: ZombieProps) {
+export function Zombie({ id, onShoot, initialX, duration }: ZombieProps) {
   const [isShot, setIsShot] = useState(false);
   const handleClick = () => {
     if (!isShot) {
@@ -36,12 +35,6 @@ export function Zombie({ id, onShoot, onEscape, initialX, duration }: ZombieProp
           animate="shamble"
           exit="shot"
           variants={variants}
-          onAnimationComplete={(definition) => {
-            // If the shamble animation finishes naturally (not via exit/shot), it escaped
-            if (definition === 'shamble') {
-              onEscape(id);
-            }
-          }}
           onClick={handleClick}
           className="absolute cursor-crosshair"
         >

@@ -15,6 +15,7 @@ import { InventoryPage } from '@/pages/InventoryPage';
 import { VulturesNestPage } from '@/pages/VulturesNestPage';
 import { GanderGalleryPage } from '@/pages/GanderGalleryPage';
 import { TheGlitchPage } from '@/pages/TheGlitchPage';
+import { ZombieOutbreakPage } from '@/pages/ZombieOutbreakPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -49,6 +50,11 @@ const router = createBrowserRouter([
   {
     path: "/location/the-glitch",
     element: <TheGlitchPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/location/zombie-outbreak",
+    element: <ZombieOutbreakPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {

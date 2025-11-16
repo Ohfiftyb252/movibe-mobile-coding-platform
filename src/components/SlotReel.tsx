@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { cn } from '@/lib/utils';
 interface SlotReelProps {
   symbols: React.ReactNode[];
@@ -10,7 +10,7 @@ export function SlotReel({ symbols, finalIndex, isSpinning, delay }: SlotReelPro
   const reelHeight = 100; // Corresponds to h-24 in Tailwind (4rem = 64px, but we'll use a number for calculation)
   const symbolHeight = 100;
   const totalHeight = symbols.length * symbolHeight;
-  const spinVariants = {
+  const spinVariants: Variants = {
     start: {
       y: [0, -totalHeight * 2],
       transition: {
