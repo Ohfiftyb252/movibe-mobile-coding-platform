@@ -10,6 +10,7 @@ import '@/index.css';
 import { HomePage } from '@/pages/HomePage';
 import { LocationPage } from '@/pages/LocationPage';
 import { BackAlleyPage } from '@/pages/BackAlleyPage';
+import { DataDumpPage } from '@/pages/DataDumpPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -28,7 +29,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/location/data-dump",
-    element: <LocationPage title="The Data Dump" />,
+    element: <DataDumpPage />,
     errorElement: <RouteErrorBoundary />,
   },
 ]);

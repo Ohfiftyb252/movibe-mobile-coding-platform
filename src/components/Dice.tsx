@@ -13,7 +13,7 @@ const faceRotations = {
   5: { rotateX: 90, rotateY: 0 },
   6: { rotateX: 180, rotateY: 0 },
 };
-const Dot = ({ className }: { className?: string }) => <span className={cn("block w-3 h-3 md:w-4 md:h-4 bg-ov-primary rounded-full shadow-[0_0_8px_hsl(var(--primary))]", className)}></span>;
+const Dot = () => <span className="block w-3 h-3 md:w-4 md:h-4 bg-ov-primary rounded-full shadow-[0_0_8px_hsl(var(--primary))]"></span>;
 const DiceFace = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <div className={cn("absolute w-full h-full bg-ov-dark border-2 border-ov-primary/30 rounded-lg flex items-center justify-center p-2", className)}>
     {children}

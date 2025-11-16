@@ -1,150 +1,194 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Coins, Eye } from 'lucide-react';
+import { ArrowLeft, Coins } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Dice } from '@/components/Dice';
-type CeeLoResult = { outcome: 'win' | 'loss' | 'point' | 'reroll'; value: number; message: string; };
+type CeeLoResult = {
+  outcome: 'win' | 'loss' | 'point' | 'reroll';
+  value: number;
+  message: string;
+};
 function getCeeLoResult(dice: [number, number, number]): CeeLoResult {
   const sorted = [...dice].sort();
   const [d1, d2, d3] = sorted;
-  if (d1 === 4 && d2 === 5 && d3 === 6) return { outcome: 'win', value: 100, message: '4-5-6! WIN!' };
-  if (d1 === d2 && d2 === d3) return d1 === 1 ? { outcome: 'loss', value: 0, message: 'TRIPS 1s! LOSS!' } : { outcome: 'win', value: d1, message: `TRIPS ${d1}s!` };
-  if (d1 === 1 && d2 === 2 && d3 === 3) return { outcome: 'loss', value: 0, message: '1-2-3! LOSS!' };
-  if (d1 === d2) return { outcome: 'point', value: d3, message: `POINT: ${d3}` };
-  if (d2 === d3) return { outcome: 'point', value: d1, message: `POINT: ${d1}` };
-  return { outcome: 'reroll', value: 0, message: 'REROLL...' };
+  // Automatic win
+  if (d1 === 4 && d2 === 5 && d3 === 6) return { outcome: 'win', value: 100, message: '4-5-6! Automatic Win!' };
+  // Trips
+  if (d1 === d2 && d2 === d3) {
+    if (d1 === 1) return { outcome: 'loss', value: 0, message: 'Trips 1s! Automatic Loss!' };
+    return { outcome: 'win', value: d1, message: `Trips ${d1}s! You Win!` };
+  }
+  // Automatic loss
+  if (d1 === 1 && d2 === 2 && d3 === 3) return { outcome: 'loss', value: 0, message: '1-2-3! Automatic Loss!' };
+  // Point
+  if (d1 === d2) return { outcome: 'point', value: d3, message: `You set a point of ${d3}!` };
+  if (d2 === d3) return { outcome: 'point', value: d1, message: `You set a point of ${d1}!` };
+  // Reroll
+  return { outcome: 'reroll', value: 0, message: 'No combination. Reroll!' };
 }
 export function DataDumpPage() {
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    document.body.classList.add('game-active');
-    return () => { 
-      mounted.current = false;
-      document.body.classList.remove('game-active');
-    };
-  }, []);
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
-  const increaseCorruption = usePlayerStore((s) => s.increaseCorruption);
-  const recordLoss = usePlayerStore((s) => s.recordLoss);
-  const resetLosses = usePlayerStore((s) => s.resetLosses);
-  const [betAmount, setBetAmount] = useState<number | ''>(10);
+  const [betAmount, setBetAmount] = useState<number | ''>('');
   const [isRolling, setIsRolling] = useState(false);
   const [dice, setDice] = useState<[number, number, number]>([1, 1, 1]);
-  const [feedback, setFeedback] = useState('Bones ready.');
+  const [feedback, setFeedback] = useState('Place your bet to roll.');
   const [gameResult, setGameResult] = useState<'win' | 'loss' | null>(null);
-  const rollDice = (): [number, number, number] => [
-    Math.floor(Math.random() * 6) + 1,
-    Math.floor(Math.random() * 6) + 1,
-    Math.floor(Math.random() * 6) + 1,
-  ] as [number, number, number];
+  const rollDice = (): [number, number, number] => {
+    return [
+      Math.floor(Math.random() * 6) + 1,
+      Math.floor(Math.random() * 6) + 1,
+      Math.floor(Math.random() * 6) + 1,
+    ] as [number, number, number];
+  };
   const handleRoll = () => {
     if (isRolling || !player) return;
     const bet = Number(betAmount);
-    if (!bet || bet <= 0) return;
+    if (!bet || bet <= 0) {
+      toast.error("Invalid bet amount.");
+      return;
+    }
+    if (bet > player.ovCoin) {
+      toast.error("You don't have enough O.V. Coin for that bet.");
+      return;
+    }
     setIsRolling(true);
     setGameResult(null);
-    setFeedback('PLAYER ROLLING...');
-    increaseCorruption(2);
+    setFeedback('Rolling...');
     setOvCoin(player.ovCoin - bet);
     setTimeout(() => {
-      if (!mounted.current) return;
-      let pRoll = rollDice();
-      let pRes = getCeeLoResult(pRoll);
-      while (pRes.outcome === 'reroll') { pRoll = rollDice(); pRes = getCeeLoResult(pRoll); }
-      setDice(pRoll);
-      setFeedback(pRes.message);
-      const freshPlayer = usePlayerStore.getState().player;
-      if (!freshPlayer) return;
-      if (pRes.outcome === 'win') {
+      let playerRoll = rollDice();
+      let playerResult = getCeeLoResult(playerRoll);
+      // Keep rolling if player gets a reroll
+      while (playerResult.outcome === 'reroll') {
+        playerRoll = rollDice();
+        playerResult = getCeeLoResult(playerRoll);
+      }
+      setDice(playerRoll);
+      setFeedback(playerResult.message);
+      // Handle automatic win/loss
+      if (playerResult.outcome === 'win') {
         setGameResult('win');
-        setOvCoin(freshPlayer.ovCoin + (bet * 2));
-        resetLosses();
-        setIsRolling(false);
-      } else if (pRes.outcome === 'loss') {
+        setOvCoin(player.ovCoin + bet); // Already deducted bet, add it back + winnings
+        toast.success(`You won ${bet.toLocaleString()} O.V. Coin!`);
+      } else if (playerResult.outcome === 'loss') {
         setGameResult('loss');
-        recordLoss();
-        setIsRolling(false);
-      } else {
-        setFeedback(`${pRes.message}. HOUSE ROLLING...`);
+        toast.error(`You lost ${bet.toLocaleString()} O.V. Coin.`);
+      } else { // Player set a point, now house rolls
+        setFeedback(prev => prev + " Now the house rolls...");
         setTimeout(() => {
-          if (!mounted.current) return;
-          let hRoll = rollDice();
-          let hRes = getCeeLoResult(hRoll);
-          const houseAggression = (freshPlayer.corruption / 20);
-          for(let i=0; i<houseAggression; i++) {
-            if (hRes.outcome === 'reroll' || (hRes.outcome === 'point' && hRes.value < pRes.value)) {
-              hRoll = rollDice(); hRes = getCeeLoResult(hRoll);
-            }
+          let houseRoll = rollDice();
+          let houseResult = getCeeLoResult(houseRoll);
+          while (houseResult.outcome === 'reroll' || (houseResult.outcome === 'point' && houseResult.value < playerResult.value)) {
+            houseRoll = rollDice();
+            houseResult = getCeeLoResult(houseRoll);
           }
-          setDice(hRoll);
-          const postDealerPlayer = usePlayerStore.getState().player;
-          if (!postDealerPlayer) return;
-          if (hRes.outcome === 'win' || (hRes.outcome === 'point' && hRes.value > pRes.value)) {
+          setDice(houseRoll);
+          if (houseResult.outcome === 'win' || (houseResult.outcome === 'point' && houseResult.value > playerResult.value)) {
             setGameResult('loss');
-            setFeedback(`HOUSE: ${hRes.message}. LOSS.`);
-            recordLoss();
+            setFeedback(`House rolls ${houseRoll.join('-')} (${houseResult.message}). You lose.`);
+            toast.error(`You lost ${bet.toLocaleString()} O.V. Coin.`);
           } else {
             setGameResult('win');
-            setFeedback(`HOUSE: ${hRes.message}. WIN!`);
-            setOvCoin(postDealerPlayer.ovCoin + (bet * 2));
-            resetLosses();
+            setFeedback(`House rolls ${houseRoll.join('-')} (${houseResult.message}). You win!`);
+            setOvCoin(player.ovCoin + bet);
+            toast.success(`You won ${bet.toLocaleString()} O.V. Coin!`);
           }
           setIsRolling(false);
-        }, 1500);
+        }, 2000);
+        return; // Exit early to avoid double-setting isRolling
       }
-    }, 1200);
+      setIsRolling(false);
+    }, 1600);
+  };
+  const handleBetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBetAmount(value === '' ? '' : Math.max(0, parseInt(value, 10) || 0));
+  };
+  const setQuickBet = (amount: number | 'all') => {
+    if (!player) return;
+    if (amount === 'all') {
+      setBetAmount(player.ovCoin);
+    } else {
+      setBetAmount(Math.min(amount, player.ovCoin));
+    }
   };
   return (
     <OVWLayout>
-      <div className="flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="text-center animate-fade-in mb-8">
-          <h1 className="text-4xl md:text-6xl font-display font-bold uppercase glitch-text" data-text="Data Dump">Data Dump</h1>
-          <p className="mt-4 text-ov-gray uppercase text-sm tracking-widest italic">The street finds its own uses for things. Like your money.</p>
-        </div>
-        <Card className="max-w-2xl mx-auto bg-black/60 border-ov-primary/20 p-8 flex flex-col items-center gap-8 w-full">
-          <div className="flex gap-4 md:gap-8 min-h-[120px]">
+      <div className="text-center animate-fade-in">
+        <h1 className="text-4xl md:text-6xl font-display font-bold uppercase glitch-text" data-text="The Data Dump">
+          The Data Dump
+        </h1>
+        <p className="mt-4 text-lg text-ov-gray max-w-xl mx-auto">
+          Roll the bones. Cee-lo is the game. 4-5-6 wins, 1-2-3 loses. Trips are high, points are... the point.
+        </p>
+      </div>
+      <Card className="mt-8 max-w-2xl mx-auto bg-black/50 border-ov-primary/20 animate-slide-up">
+        <CardHeader>
+          <CardTitle className="text-center text-ov-primary font-display uppercase tracking-widest">
+            Cee-lo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-8">
+          <div className="flex justify-center items-center gap-4 md:gap-8 h-24 md:h-28">
             <Dice value={dice[0]} isRolling={isRolling} delay={0} />
             <Dice value={dice[1]} isRolling={isRolling} delay={0.1} />
             <Dice value={dice[2]} isRolling={isRolling} delay={0.2} />
           </div>
-          <div className="h-8 text-center">
-            <AnimatePresence mode="wait">
-              <motion.p key={feedback} className={cn("text-2xl font-display uppercase", gameResult === 'win' ? "text-ov-green" : "text-red-500")}>
-                {feedback}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-          <div className="w-full max-w-sm space-y-4">
-            <div className="relative">
-              <Coins className="absolute left-3 top-3 w-5 h-5 text-ov-green" />
-              <Input type="number" value={betAmount} onChange={(e) => setBetAmount(Number(e.target.value))} className="pl-10 text-xl" />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={feedback}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className={cn(
+                "text-xl text-center font-bold font-display uppercase h-12",
+                gameResult === 'win' && 'text-ov-green',
+                gameResult === 'loss' && 'text-destructive'
+              )}
+            >
+              {feedback}
+            </motion.div>
+          </AnimatePresence>
+          <div className="w-full space-y-4">
+            <div className="flex items-center gap-2">
+              <Coins className="w-6 h-6 text-ov-green" />
+              <Input
+                type="number"
+                placeholder="Enter bet amount..."
+                value={betAmount}
+                onChange={handleBetChange}
+                disabled={isRolling}
+                className="text-center text-lg bg-ov-dark border-ov-primary/30 focus:ring-ov-primary focus:border-ov-primary"
+              />
             </div>
-            <Button size="lg" className="w-full h-16 uppercase" onClick={handleRoll} disabled={isRolling}>Throw Bones</Button>
-            {player && player.luck > 80 && (
-              <div className="p-3 bg-ov-primary/5 border border-ov-primary/20 rounded-lg flex items-center gap-3">
-                <Eye className="w-5 h-5 text-ov-primary" />
-                <div className="text-[10px] uppercase text-ov-primary/80 leading-tight">
-                  <span className="font-bold">Leaked Intel:</span> The house is currently using weighted algorithms. Roll with caution.
-                </div>
-              </div>
-            )}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <Button variant="outline" onClick={() => setQuickBet(10)} disabled={isRolling}>10</Button>
+              <Button variant="outline" onClick={() => setQuickBet(50)} disabled={isRolling}>50</Button>
+              <Button variant="outline" onClick={() => setQuickBet(100)} disabled={isRolling}>100</Button>
+              <Button variant="destructive" onClick={() => setQuickBet('all')} disabled={isRolling}>All In</Button>
+            </div>
+            <div className="pt-4">
+              <Button size="lg" onClick={handleRoll} disabled={isRolling} className="w-full">
+                {isRolling ? 'Rolling...' : 'Roll Dice'}
+              </Button>
+            </div>
           </div>
-        </Card>
-        <div className="mt-12 text-center">
-          <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase">
-            <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> GTFO</Link>
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+      <Button asChild variant="link" className="mt-8 text-ov-primary hover:text-white transition-colors">
+        <Link to="/">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Return to the Dive Bar
+        </Link>
+      </Button>
     </OVWLayout>
   );
 }
