@@ -9,6 +9,7 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import '@/index.css';
 import { HomePage } from '@/pages/HomePage';
 import { LocationPage } from '@/pages/LocationPage';
+import { BackAlleyPage } from '@/pages/BackAlleyPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -17,7 +18,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/location/back-alley",
-    element: <LocationPage title="The Back Alley Arena" />,
+    element: <BackAlleyPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {
