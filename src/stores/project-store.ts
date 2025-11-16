@@ -17,6 +17,7 @@ export type ProjectActions = {
   createFile: (fileName: string) => void;
   deleteFile: (fileId: string) => void;
   renameProject: (newName: string) => void;
+  createProject: (name: string) => Promise<string | undefined>;
 };
 export const useProjectStore = create<ProjectState & ProjectActions>()(
   immer((set, get) => ({
@@ -26,7 +27,7 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
     error: null,
     isSaving: false,
     loadProject: async (projectId) => {
-      set({ isLoading: true, error: null });
+      set({ isLoading: true, error: null, project: null });
       try {
         const project = await api<Project>(`/api/projects/${projectId}`);
         const firstFileId = Object.keys(project.files)[0] || null;
@@ -109,6 +110,18 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
           state.project.name = newName;
         }
       });
+    },
+    createProject: async (name) => {
+      try {
+        const newProject = await api<Project>('/api/projects', {
+          method: 'POST',
+          body: JSON.stringify({ name }),
+        });
+        return newProject.id;
+      } catch (error) {
+        console.error('Failed to create project:', error);
+        return undefined;
+      }
     },
   }))
 );

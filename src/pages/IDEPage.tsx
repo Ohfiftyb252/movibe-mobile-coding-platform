@@ -2,7 +2,7 @@ import {
   Panel,
   PanelGroup,
   PanelResizeHandle,
-} from 'react-resizable-panels';
+} from '@/components/ui/resizable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Header } from '@/components/movibe/Header';

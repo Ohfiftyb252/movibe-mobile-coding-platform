@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, FolderGit2, Loader2, Trash2 } from 'lucide-react';
-import { motion, Variants } from 'framer-motion';
+import { Plus, FolderGit2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,52 +18,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api-client';
 import type { Project } from '@shared/types';
 import { useProjectStore } from '@/stores/project-store';
 import { Toaster, toast } from '@/components/ui/sonner';
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-const itemVariants: Variants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: 'spring',
-      stiffness: 100,
-    },
-  },
-};
 export function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const navigate = useNavigate();
   const createProject = useProjectStore((s) => s.createProject);
-  const deleteProject = useProjectStore((s) => s.deleteProject);
   useEffect(() => {
     async function fetchProjects() {
       try {
@@ -101,19 +67,6 @@ export function DashboardPage() {
       console.error(error);
     } finally {
       setIsCreating(false);
-    }
-  };
-  const handleDeleteProject = async (projectId: string, projectName: string) => {
-    setIsDeleting(projectId);
-    try {
-      await deleteProject(projectId);
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
-      toast.success(`Project "${projectName}" deleted.`);
-    } catch (error) {
-      toast.error('Failed to delete project.');
-      console.error(error);
-    } finally {
-      setIsDeleting(null);
     }
   };
   return (
@@ -163,68 +116,25 @@ export function DashboardPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : projects.length > 0 ? (
-            <motion.div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {projects.map((project) => (
-                <motion.div key={project.id} variants={itemVariants}>
-                  <Card
-                    className="hover:shadow-lg hover:-translate-y-1 transition-all duration-200 h-full flex flex-col group relative"
-                  >
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the project "{project.name}".
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteProject(project.id, project.name)}
-                            disabled={isDeleting === project.id}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            {isDeleting === project.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                    <Link to={`/project/${project.id}`} className="flex flex-col flex-grow">
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <FolderGit2 className="h-6 w-6 text-indigo-500" />
-                          <CardTitle className="truncate">{project.name}</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="flex-grow">
-                        <CardDescription>
-                          Contains {Object.keys(project.files).length} files.
-                        </CardDescription>
-                      </CardContent>
-                    </Link>
+                <Link to={`/project/${project.id}`} key={project.id}>
+                  <Card className="hover:shadow-lg hover:-translate-y-1 transition-all duration-200 h-full flex flex-col">
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <FolderGit2 className="h-6 w-6 text-indigo-500" />
+                        <CardTitle className="truncate">{project.name}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      <CardDescription>
+                        Contains {Object.keys(project.files).length} files.
+                      </CardDescription>
+                    </CardContent>
                   </Card>
-                </motion.div>
+                </Link>
               ))}
-            </motion.div>
+            </div>
           ) : (
             <div className="text-center py-16 border-2 border-dashed rounded-lg">
               <h2 className="text-xl font-semibold text-foreground">No Projects Yet</h2>

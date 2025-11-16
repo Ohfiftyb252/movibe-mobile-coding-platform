@@ -2,7 +2,48 @@ import { Hono } from "hono";
 import type { Env } from './core-utils';
 import { UserEntity, ChatBoardEntity, ProjectEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
-import type { Project } from "@shared/types";
+import type { Project, ProjectFile } from "@shared/types";
+const DEFAULT_PROJECT_FILES: Record<string, ProjectFile> = {
+  'index.html': {
+    id: 'index.html',
+    name: 'index.html',
+    language: 'html',
+    content: `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Movibe Project</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <h1>Welcome to your new project!</h1>
+    <p>This is your mobile coding environment.</p>
+    <script src="script.js"></script>
+  </body>
+</html>`,
+  },
+  'style.css': {
+    id: 'style.css',
+    name: 'style.css',
+    language: 'css',
+    content: `body {
+  font-family: sans-serif;
+  background-color: #f0f0f0;
+  color: #333;
+  padding: 2rem;
+}
+h1 {
+  color: #4f46e5;
+}`,
+  },
+  'script.js': {
+    id: 'script.js',
+    name: 'script.js',
+    language: 'javascript',
+    content: `console.log('Hello from Movibe!');
+// Your JavaScript code here
+`,
+  },
+};
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/test', (c) => c.json({ success: true, data: { name: 'CF Workers Demo' }}));
   // MOVIBE PROJECTS
@@ -21,12 +62,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return ok(c, await project.getState());
   });
   app.post('/api/projects', async (c) => {
-    const { name, files } = (await c.req.json()) as Partial<Project>;
+    const { name } = (await c.req.json()) as Partial<Project>;
     if (!isStr(name)) return bad(c, 'Project name is required');
     const newProject: Project = {
       id: crypto.randomUUID(),
       name,
-      files: files || {},
+      files: DEFAULT_PROJECT_FILES,
     };
     await ProjectEntity.create(c.env, newProject);
     return ok(c, newProject);
