@@ -6,43 +6,26 @@ interface PlayingCardProps {
   hidden?: boolean;
   isFlipped?: boolean;
   delay?: number;
-  onClick?: (card: CardType) => void;
-  isSelected?: boolean;
 }
-export function PlayingCard({ card, hidden = false, delay = 0, onClick, isSelected = false }: PlayingCardProps) {
+export function PlayingCard({ card, hidden = false, isFlipped = false, delay = 0 }: PlayingCardProps) {
   const isRed = card?.suit === '♥' || card?.suit === '♦';
   const cardVariants = {
-    hidden: { 
-      y: -100, 
-      opacity: 0, 
-      rotateY: 180 
-    },
-    visible: (isHidden: boolean) => ({
+    hidden: { y: -100, opacity: 0, rotateY: 180 },
+    visible: {
       y: 0,
       opacity: 1,
-      rotateY: isHidden ? 180 : 0,
+      rotateY: isFlipped ? 180 : 0,
       transition: { duration: 0.5, delay }
-    }),
-  };
-  const handleClick = () => {
-    if (onClick && card && !hidden) {
-      onClick(card);
-    }
+    },
   };
   return (
     <motion.div
-      className="w-24 h-36 md:w-28 md:h-40 perspective-1000 cursor-pointer"
+      className="w-24 h-36 md:w-28 md:h-40 perspective-1000"
       variants={cardVariants}
       initial="hidden"
       animate="visible"
-      custom={hidden}
-      onClick={handleClick}
-      whileHover={{ scale: hidden ? 1 : 1.05, y: isSelected ? -20 : -10 }}
     >
-      <div className={cn(
-        "relative w-full h-full preserve-3d transition-transform duration-500",
-        isSelected && "ring-4 ring-ov-primary shadow-lg shadow-ov-primary/50 rounded-lg"
-      )}>
+      <div className={cn("relative w-full h-full preserve-3d transition-transform duration-500", { 'rotate-y-180': hidden })}>
         {/* Card Front */}
         <div className="absolute w-full h-full backface-hidden bg-white border-2 border-gray-300 rounded-lg shadow-lg flex flex-col justify-between p-2">
           <div className={cn("text-left text-2xl font-bold", isRed ? 'text-red-600' : 'text-black')}>

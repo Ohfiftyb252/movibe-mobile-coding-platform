@@ -11,6 +11,7 @@ import { HomePage } from '@/pages/HomePage';
 import { LocationPage } from '@/pages/LocationPage';
 import { BackAlleyPage } from '@/pages/BackAlleyPage';
 import { DataDumpPage } from '@/pages/DataDumpPage';
+import { CryptoCarnivalPage } from '@/pages/CryptoCarnivalPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -24,7 +25,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/location/crypto-carnival",
-    element: <LocationPage title="The Crypto Carnival" />,
+    element: <CryptoCarnivalPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {
