@@ -58,7 +58,7 @@ export function BackAlleyPage() {
     setIsFlipping(true);
     setGameResult(null);
     setFeedback('');
-    setOvCoin(player.ovCoin - bet);
+    const newBalanceAfterBet = player.ovCoin - bet;
     setTimeout(() => {
       const isRiggedLoss = Math.random() < 0.55; // 55% chance to lose
       const winningSide: 'heads' | 'tails' = choice === 'heads' ? 'tails' : 'heads';
@@ -67,10 +67,11 @@ export function BackAlleyPage() {
       if (flipResult === choice) {
         setGameResult('win');
         setFeedback(`You won ${(bet * 2).toLocaleString()} O.V. Coin!`);
-        setOvCoin(player.ovCoin + bet); // Winnings are bet * 2, but we already deducted bet. So just add bet back.
+        setOvCoin(newBalanceAfterBet + bet * 2);
       } else {
         setGameResult('loss');
         setFeedback(`You lost ${bet.toLocaleString()} O.V. Coin. Tough luck.`);
+        setOvCoin(newBalanceAfterBet);
       }
       setIsFlipping(false);
     }, 2100);
@@ -114,12 +115,12 @@ export function BackAlleyPage() {
           <Coin isFlipping={isFlipping} result={coinResult} />
           <AnimatePresence mode="wait">
             <motion.div
-              key={gameResult}
+              key={feedback}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               className={cn(
-                "text-2xl font-bold font-display uppercase",
+                "text-2xl font-bold font-display uppercase h-8",
                 gameResult === 'win' && 'text-ov-green',
                 gameResult === 'loss' && 'text-destructive'
               )}
@@ -127,7 +128,7 @@ export function BackAlleyPage() {
               {feedback || "Place your bet"}
             </motion.div>
           </AnimatePresence>
-          <div className="w-full space-y-4">
+          <div className="w-full max-w-sm space-y-4">
             <div className="flex items-center gap-2">
               <Coins className="w-6 h-6 text-ov-green" />
               <Input
@@ -146,8 +147,8 @@ export function BackAlleyPage() {
               <Button variant="destructive" onClick={() => setQuickBet('all')} disabled={isFlipping}>All In</Button>
             </div>
             <div className="grid grid-cols-2 gap-4 pt-4">
-              <Button size="lg" onClick={() => handleFlip('heads')} disabled={isFlipping} className="bg-yellow-500 hover:bg-yellow-600 text-black">Bet on Heads</Button>
-              <Button size="lg" onClick={() => handleFlip('tails')} disabled={isFlipping} className="bg-gray-700 hover:bg-gray-800 text-white">Bet on Tails</Button>
+              <Button size="lg" onClick={() => handleFlip('heads')} disabled={isFlipping || !betAmount} className="bg-yellow-500 hover:bg-yellow-600 text-black">Bet on Heads</Button>
+              <Button size="lg" onClick={() => handleFlip('tails')} disabled={isFlipping || !betAmount} className="bg-gray-700 hover:bg-gray-800 text-white">Bet on Tails</Button>
             </div>
           </div>
         </CardContent>

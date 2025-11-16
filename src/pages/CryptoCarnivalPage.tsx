@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OVWLayout } from '@/components/OVWLayout';
@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Coins } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { PlayingCard } from '@/components/PlayingCard';
 import { createDeck, shuffleDeck, getHandValue, determineWinner, type Deck, type Hand, type GameResult } from '@/lib/game-logic/blackjack';
 type GameState = 'betting' | 'playing' | 'dealer_turn' | 'finished';
@@ -21,7 +20,6 @@ export function CryptoCarnivalPage() {
   const [playerHand, setPlayerHand] = useState<Hand>([]);
   const [dealerHand, setDealerHand] = useState<Hand>([]);
   const [feedback, setFeedback] = useState('Place your bet to start the hand.');
-  const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const playerValue = getHandValue(playerHand);
   const dealerValue = getHandValue(dealerHand);
   const startNewHand = () => {
@@ -33,7 +31,6 @@ export function CryptoCarnivalPage() {
       toast.error("You don't have enough O.V. Coin.");
       return;
     }
-    setOvCoin(player.ovCoin - betAmount);
     const newDeck = shuffleDeck(createDeck());
     const initialPlayerHand = [newDeck.pop()!, newDeck.pop()!];
     const initialDealerHand = [newDeck.pop()!, newDeck.pop()!];
@@ -41,11 +38,10 @@ export function CryptoCarnivalPage() {
     setDealerHand(initialDealerHand);
     setDeck(newDeck);
     setGameState('playing');
-    setGameResult(null);
     setFeedback('Your turn. Hit or Stand?');
     const result = determineWinner(initialPlayerHand, initialDealerHand);
     if (result === 'player_blackjack') {
-      endHand(result);
+      endHand(result, initialPlayerHand, initialDealerHand);
     }
   };
   const handleHit = () => {
@@ -55,7 +51,7 @@ export function CryptoCarnivalPage() {
     setPlayerHand(newHand);
     setDeck([...deck]);
     if (getHandValue(newHand) > 21) {
-      endHand('player_bust');
+      endHand('player_bust', newHand, dealerHand);
     }
   };
   const handleStand = () => {
@@ -63,36 +59,45 @@ export function CryptoCarnivalPage() {
     setGameState('dealer_turn');
     let currentDealerHand = [...dealerHand];
     let currentDeck = [...deck];
-    while (getHandValue(currentDealerHand) < 17) {
-      const newCard = currentDeck.pop()!;
-      currentDealerHand.push(newCard);
-    }
-    setDealerHand(currentDealerHand);
-    setDeck(currentDeck);
-    endHand(determineWinner(playerHand, currentDealerHand));
+    const dealerPlay = () => {
+      if (getHandValue(currentDealerHand) < 17) {
+        const newCard = currentDeck.pop()!;
+        currentDealerHand.push(newCard);
+        setDealerHand([...currentDealerHand]);
+        setDeck([...currentDeck]);
+        setTimeout(dealerPlay, 600);
+      } else {
+        endHand(determineWinner(playerHand, currentDealerHand), playerHand, currentDealerHand);
+      }
+    };
+    setTimeout(dealerPlay, 600);
   };
-  const endHand = (result: GameResult) => {
+  const endHand = (result: GameResult, finalPlayerHand: Hand, finalDealerHand: Hand) => {
     setGameState('finished');
-    setGameResult(result);
     const bet = Number(betAmount);
     if (!player) return;
+    const balanceBeforeWinnings = player.ovCoin - bet;
     switch (result) {
       case 'player_blackjack':
         setFeedback(`Blackjack! You win ${(bet * 2.5).toLocaleString()}!`);
-        setOvCoin(player.ovCoin + bet * 1.5); // Bet already deducted, add it back + 1.5x winnings
+        setOvCoin(balanceBeforeWinnings + bet * 2.5);
         break;
       case 'player_win':
       case 'dealer_bust':
-        setFeedback(`You win ${bet.toLocaleString()}!`);
-        setOvCoin(player.ovCoin + bet); // Bet already deducted, add it back + 1x winnings
+        setFeedback(`You win ${(bet * 2).toLocaleString()}!`);
+        setOvCoin(balanceBeforeWinnings + bet * 2);
         break;
       case 'push':
         setFeedback('Push. Your bet is returned.');
-        // Bet already deducted, just add it back.
+        setOvCoin(balanceBeforeWinnings + bet);
+        break;
+      case 'player_bust':
+        setFeedback(`Bust! You lose ${bet.toLocaleString()}.`);
+        setOvCoin(balanceBeforeWinnings);
         break;
       default:
         setFeedback(`You lose ${bet.toLocaleString()}.`);
-        // Bet is already lost.
+        setOvCoin(balanceBeforeWinnings);
         break;
     }
   };
@@ -100,6 +105,26 @@ export function CryptoCarnivalPage() {
     const value = e.target.value;
     setBetAmount(value === '' ? '' : Math.max(0, parseInt(value, 10) || 0));
   };
+  const setQuickBet = (amount: number | 'all') => {
+    if (!player) return;
+    if (amount === 'all') {
+      setBetAmount(player.ovCoin);
+    } else {
+      setBetAmount(Math.min(amount, player.ovCoin));
+    }
+  };
+  const handleDeal = () => {
+    if (!player || !betAmount || betAmount <= 0) {
+      toast.error("Invalid bet amount.");
+      return;
+    }
+    if (betAmount > player.ovCoin) {
+      toast.error("You don't have enough O.V. Coin.");
+      return;
+    }
+    setOvCoin(player.ovCoin - Number(betAmount));
+    startNewHand();
+  }
   return (
     <OVWLayout>
       <div className="text-center animate-fade-in">
@@ -117,7 +142,6 @@ export function CryptoCarnivalPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-8">
-          {/* Dealer's Hand */}
           <div className="w-full">
             <h3 className="text-center text-xl mb-4">Dealer's Hand ({gameState === 'dealer_turn' || gameState === 'finished' ? dealerValue : '?'})</h3>
             <div className="flex justify-center items-center gap-4 min-h-[10rem]">
@@ -126,7 +150,6 @@ export function CryptoCarnivalPage() {
               ))}
             </div>
           </div>
-          {/* Player's Hand */}
           <div className="w-full">
             <h3 className="text-center text-xl mb-4">Your Hand ({playerValue})</h3>
             <div className="flex justify-center items-center gap-4 min-h-[10rem]">
@@ -146,7 +169,6 @@ export function CryptoCarnivalPage() {
               {feedback}
             </motion.div>
           </AnimatePresence>
-          {/* Controls */}
           <div className="w-full max-w-sm space-y-4">
             {gameState === 'betting' && (
               <>
@@ -154,7 +176,13 @@ export function CryptoCarnivalPage() {
                   <Coins className="w-6 h-6 text-ov-green" />
                   <Input type="number" value={betAmount} onChange={handleBetChange} className="text-center text-lg bg-ov-dark border-ov-primary/30" />
                 </div>
-                <Button size="lg" onClick={startNewHand} className="w-full">Deal Cards</Button>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <Button variant="outline" onClick={() => setQuickBet(10)}>10</Button>
+                    <Button variant="outline" onClick={() => setQuickBet(50)}>50</Button>
+                    <Button variant="outline" onClick={() => setQuickBet(100)}>100</Button>
+                    <Button variant="destructive" onClick={() => setQuickBet('all')}>All In</Button>
+                </div>
+                <Button size="lg" onClick={handleDeal} className="w-full">Deal Cards</Button>
               </>
             )}
             {gameState === 'playing' && (
@@ -164,7 +192,12 @@ export function CryptoCarnivalPage() {
               </div>
             )}
             {gameState === 'finished' && (
-              <Button size="lg" onClick={() => setGameState('betting')} className="w-full">New Hand</Button>
+              <Button size="lg" onClick={() => {
+                setGameState('betting');
+                setPlayerHand([]);
+                setDealerHand([]);
+                setFeedback('Place your bet to start the hand.');
+              }} className="w-full">New Hand</Button>
             )}
           </div>
         </CardContent>

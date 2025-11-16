@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OVWLayout } from '@/components/OVWLayout';
@@ -62,26 +62,27 @@ export function DataDumpPage() {
     setIsRolling(true);
     setGameResult(null);
     setFeedback('Rolling...');
-    setOvCoin(player.ovCoin - bet);
+    const newBalanceAfterBet = player.ovCoin - bet;
     setTimeout(() => {
       let playerRoll = rollDice();
       let playerResult = getCeeLoResult(playerRoll);
-      // Keep rolling if player gets a reroll
       while (playerResult.outcome === 'reroll') {
         playerRoll = rollDice();
         playerResult = getCeeLoResult(playerRoll);
       }
       setDice(playerRoll);
       setFeedback(playerResult.message);
-      // Handle automatic win/loss
       if (playerResult.outcome === 'win') {
         setGameResult('win');
-        setOvCoin(player.ovCoin + bet); // Already deducted bet, add it back + winnings
+        setOvCoin(newBalanceAfterBet + bet * 2);
         toast.success(`You won ${bet.toLocaleString()} O.V. Coin!`);
+        setIsRolling(false);
       } else if (playerResult.outcome === 'loss') {
         setGameResult('loss');
+        setOvCoin(newBalanceAfterBet);
         toast.error(`You lost ${bet.toLocaleString()} O.V. Coin.`);
-      } else { // Player set a point, now house rolls
+        setIsRolling(false);
+      } else {
         setFeedback(prev => prev + " Now the house rolls...");
         setTimeout(() => {
           let houseRoll = rollDice();
@@ -94,18 +95,17 @@ export function DataDumpPage() {
           if (houseResult.outcome === 'win' || (houseResult.outcome === 'point' && houseResult.value > playerResult.value)) {
             setGameResult('loss');
             setFeedback(`House rolls ${houseRoll.join('-')} (${houseResult.message}). You lose.`);
+            setOvCoin(newBalanceAfterBet);
             toast.error(`You lost ${bet.toLocaleString()} O.V. Coin.`);
           } else {
             setGameResult('win');
             setFeedback(`House rolls ${houseRoll.join('-')} (${houseResult.message}). You win!`);
-            setOvCoin(player.ovCoin + bet);
+            setOvCoin(newBalanceAfterBet + bet * 2);
             toast.success(`You won ${bet.toLocaleString()} O.V. Coin!`);
           }
           setIsRolling(false);
         }, 2000);
-        return; // Exit early to avoid double-setting isRolling
       }
-      setIsRolling(false);
     }, 1600);
   };
   const handleBetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,7 +157,7 @@ export function DataDumpPage() {
               {feedback}
             </motion.div>
           </AnimatePresence>
-          <div className="w-full space-y-4">
+          <div className="w-full max-w-sm space-y-4">
             <div className="flex items-center gap-2">
               <Coins className="w-6 h-6 text-ov-green" />
               <Input
@@ -176,7 +176,7 @@ export function DataDumpPage() {
               <Button variant="destructive" onClick={() => setQuickBet('all')} disabled={isRolling}>All In</Button>
             </div>
             <div className="pt-4">
-              <Button size="lg" onClick={handleRoll} disabled={isRolling} className="w-full">
+              <Button size="lg" onClick={handleRoll} disabled={isRolling || !betAmount} className="w-full">
                 {isRolling ? 'Rolling...' : 'Roll Dice'}
               </Button>
             </div>

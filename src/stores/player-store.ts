@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Player } from '@shared/types';
 import { api } from '@/lib/api-client';
+import { toast } from 'sonner';
 // Simple debounce utility
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number) {
   let timeout: ReturnType<typeof setTimeout> | null;
@@ -23,6 +24,7 @@ type PlayerState = {
   loadPlayer: (id: string) => Promise<void>;
   updatePlayer: (id: string, updates: Partial<Player>) => Promise<void>;
   setOvCoin: (amount: number) => void;
+  _setOvCoinAndUpdate: (amount: number) => void;
 };
 export const usePlayerStore = create<PlayerState>()(
   immer((set, get) => {
@@ -74,13 +76,34 @@ export const usePlayerStore = create<PlayerState>()(
           console.error(errorMessage);
         }
       },
-      setOvCoin: (amount) => {
+      _setOvCoinAndUpdate: (amount) => {
         set((state) => {
           if (state.player) {
             state.player.ovCoin = amount;
           }
         });
         debouncedUpdate();
+      },
+      setOvCoin: (amount) => {
+        const player = get().player;
+        if (!player) return;
+        if (amount <= 0) {
+          toast.info("PITY PARTY!", {
+            description: "You're broke. Here's a hat and 500 O.V. Coin. Try not to lose it all at once.",
+            duration: 5000,
+          });
+          set(state => {
+            if (state.player) {
+              if (!state.player.inventory.hats.includes("Pity Party")) {
+                state.player.inventory.hats.push("Pity Party");
+              }
+              state.player.ovCoin = 500;
+            }
+          });
+          debouncedUpdate();
+        } else {
+          get()._setOvCoinAndUpdate(amount);
+        }
       },
     };
   })

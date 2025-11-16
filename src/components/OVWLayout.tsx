@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { usePlayerStore } from '@/stores/player-store';
-import { ThemeToggle } from './ThemeToggle';
 import { Toaster } from '@/components/ui/sonner';
-import { Coins } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Coins, Package } from 'lucide-react';
 interface OVWLayoutProps {
   children: React.ReactNode;
 }
@@ -23,13 +24,17 @@ function PlayerStats() {
         <Coins className="w-4 h-4 text-ov-green" />
         <span className="font-mono text-ov-green font-bold">{player.ovCoin.toLocaleString()}</span>
       </div>
+      <Button asChild variant="ghost" size="icon" className="text-ov-gray hover:text-ov-primary hover:bg-ov-primary/10">
+        <Link to="/inventory">
+          <Package className="w-5 h-5" />
+        </Link>
+      </Button>
     </div>
   );
 }
 export function OVWLayout({ children }: OVWLayoutProps) {
   const loadPlayer = usePlayerStore((s) => s.loadPlayer);
   useEffect(() => {
-    // In a real app, player ID would come from auth. Here, we hardcode it.
     loadPlayer('PLAYER_ONE');
   }, [loadPlayer]);
   useEffect(() => {
@@ -42,9 +47,9 @@ export function OVWLayout({ children }: OVWLayoutProps) {
     <div className="min-h-screen bg-ov-dark text-ov-foreground font-mono selection:bg-ov-primary selection:text-black">
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-10 pointer-events-none"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black pointer-events-none"></div>
-      <header className="fixed top-0 left-0 right-0 z-50 p-4">
+      <header className="fixed top-0 left-0 right-0 z-50 p-4 backdrop-blur-sm bg-ov-dark/50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="font-display text-lg uppercase glitch-text" data-text="O.V.W">O.V.W</div>
+          <Link to="/" className="font-display text-lg uppercase glitch-text" data-text="O.V.W">O.V.W</Link>
           <PlayerStats />
         </div>
       </header>
@@ -53,8 +58,8 @@ export function OVWLayout({ children }: OVWLayoutProps) {
           {children}
         </div>
       </main>
-      <footer className="fixed bottom-0 left-0 right-0 p-4 text-center text-ov-gray/50 text-sm">
-        <p>Built with ❤�� at Cloudflare. All games are probably rigged. Gamble responsibly (or don't, we don't care).</p>
+      <footer className="fixed bottom-0 left-0 right-0 p-4 text-center text-ov-gray/50 text-sm pointer-events-none">
+        <p>Built with ❤️ at Cloudflare. All games are probably rigged. Gamble responsibly (or don't, we don't care).</p>
       </footer>
       <Toaster theme="dark" richColors closeButton />
     </div>

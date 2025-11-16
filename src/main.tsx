@@ -12,6 +12,7 @@ import { LocationPage } from '@/pages/LocationPage';
 import { BackAlleyPage } from '@/pages/BackAlleyPage';
 import { DataDumpPage } from '@/pages/DataDumpPage';
 import { CryptoCarnivalPage } from '@/pages/CryptoCarnivalPage';
+import { InventoryPage } from '@/pages/InventoryPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -31,6 +32,11 @@ const router = createBrowserRouter([
   {
     path: "/location/data-dump",
     element: <DataDumpPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/inventory",
+    element: <InventoryPage />,
     errorElement: <RouteErrorBoundary />,
   },
 ]);
