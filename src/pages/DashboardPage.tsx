@@ -154,7 +154,10 @@ export function DashboardPage() {
                         variant="destructive"
                         size="icon"
                         className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -210,7 +213,7 @@ export function DashboardPage() {
         </main>
       </div>
       <footer className="text-center py-6 text-sm text-muted-foreground">
-        Built with ❤️ at Cloudflare
+        Built with ❤�� at Cloudflare
       </footer>
       <Toaster richColors />
     </div>
