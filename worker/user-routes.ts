@@ -82,6 +82,14 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     await project.patch(projectData);
     return ok(c, await project.getState());
   });
+  app.delete('/api/projects/:id', async (c) => {
+    const { id } = c.req.param();
+    const deleted = await ProjectEntity.delete(c.env, id);
+    if (!deleted) {
+      return notFound(c, 'Project not found');
+    }
+    return ok(c, { id, deleted: true });
+  });
   // USERS
   app.get('/api/users', async (c) => {
     await UserEntity.ensureSeed(c.env);

@@ -18,6 +18,7 @@ export type ProjectActions = {
   deleteFile: (fileId: string) => void;
   renameProject: (newName: string) => void;
   createProject: (name: string) => Promise<string | undefined>;
+  deleteProject: (projectId: string) => Promise<void>;
 };
 export const useProjectStore = create<ProjectState & ProjectActions>()(
   immer((set, get) => ({
@@ -121,6 +122,16 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
       } catch (error) {
         console.error('Failed to create project:', error);
         return undefined;
+      }
+    },
+    deleteProject: async (projectId) => {
+      try {
+        await api(`/api/projects/${projectId}`, {
+          method: 'DELETE',
+        });
+      } catch (error) {
+        console.error('Failed to delete project:', error);
+        throw error; // Re-throw to be caught by the caller
       }
     },
   }))
