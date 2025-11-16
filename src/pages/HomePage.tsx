@@ -1,7 +1,7 @@
 import {
-  Panel,
-  PanelGroup,
-  PanelResizeHandle,
+  ResizablePanel as Panel,
+  ResizablePanelGroup as PanelGroup,
+  ResizableHandle as PanelResizeHandle,
 } from '@/components/ui/resizable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -11,9 +11,33 @@ import { FileTree } from '@/components/movibe/FileTree';
 import { CodeEditor } from '@/components/movibe/Editor';
 import { Preview } from '@/components/movibe/Preview';
 import { useState } from 'react';
+import { useProjectLoader } from '@/hooks/use-project-loader';
 export function HomePage() {
   const isMobile = useIsMobile();
   const [isSheetOpen, setSheetOpen] = useState(false);
+  const { isLoading, error } = useProjectLoader('default-project');
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background text-foreground">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 animate-spin" />
+          <p className="text-muted-foreground">Loading Movibe...</p>
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background text-foreground">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-destructive-foreground bg-destructive p-4 rounded-md">
+            Error Loading Project
+          </h2>
+          <p className="mt-4 text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
   if (isMobile) {
     return (
       <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
@@ -27,7 +51,7 @@ export function HomePage() {
               <TabsContent value="preview" className="flex-1 overflow-auto bg-white">
                 <Preview />
               </TabsContent>
-              <TabsList className="grid w-full grid-cols-2 rounded-none">
+              <TabsList className="grid w-full grid-cols-2 rounded-none h-12">
                 <TabsTrigger value="editor">Editor</TabsTrigger>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
               </TabsList>
