@@ -5,7 +5,6 @@ import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-markup';
 import 'prismjs/components/prism-css';
-import 'prismjs/themes/prism-tomorrow.css'; // Dark theme
 import { useProjectStore } from '@/stores/project-store';
 import { useTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
@@ -32,7 +31,7 @@ export function CodeEditor() {
     <div
       className={cn(
         'relative h-full w-full font-mono text-sm overflow-auto',
-        isDark ? 'dark-theme-editor' : 'light-theme-editor'
+        isDark ? 'prism-tomorrow' : 'prism-default'
       )}
     >
       <Editor

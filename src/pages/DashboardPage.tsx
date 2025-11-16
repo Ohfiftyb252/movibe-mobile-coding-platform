@@ -170,8 +170,12 @@ export function DashboardPage() {
               animate="visible"
             >
               {projects.map((project) => (
-                <motion.div key={project.id} variants={itemVariants} className="h-full">
-                  <Card className="hover:shadow-lg hover:-translate-y-1 transition-all duration-200 h-full flex flex-col group relative">
+                <motion.div key={project.id} variants={itemVariants}>
+                  <Card
+                    as={motion.div}
+                    variants={itemVariants}
+                    className="hover:shadow-lg hover:-translate-y-1 transition-all duration-200 h-full flex flex-col group relative"
+                  >
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button

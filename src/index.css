@@ -1,4 +1,3 @@
-@import 'prismjs/themes/prism.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -167,5 +166,166 @@
   }
   .text-body {
     @apply text-base sm:text-lg text-muted-foreground leading-relaxed;
+  }
+}
+
+@layer base {
+  /* Light Theme (Default Prism) */
+  .prism-default code[class*="language-"],
+  .prism-default pre[class*="language-"] {
+    color: black;
+    background: none;
+    text-shadow: 0 1px white;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 1em;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    word-wrap: normal;
+    line-height: 1.5;
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
+  }
+
+  .prism-default .token.comment,
+  .prism-default .token.prolog,
+  .prism-default .token.doctype,
+  .prism-default .token.cdata {
+    color: slategray;
+  }
+
+  .prism-default .token.punctuation {
+    color: #999;
+  }
+
+  .prism-default .token.namespace {
+    opacity: .7;
+  }
+
+  .prism-default .token.property,
+  .prism-default .token.tag,
+  .prism-default .token.boolean,
+  .prism-default .token.number,
+  .prism-default .token.constant,
+  .prism-default .token.symbol,
+  .prism-default .token.deleted {
+    color: #905;
+  }
+
+  .prism-default .token.selector,
+  .prism-default .token.attr-name,
+  .prism-default .token.string,
+  .prism-default .token.char,
+  .prism-default .token.builtin,
+  .prism-default .token.inserted {
+    color: #690;
+  }
+
+  .prism-default .token.operator,
+  .prism-default .token.entity,
+  .prism-default .token.url,
+  .prism-default .language-css .token.string,
+  .prism-default .style .token.string {
+    color: #9a6e3a;
+  }
+
+  .prism-default .token.atrule,
+  .prism-default .token.attr-value,
+  .prism-default .token.keyword {
+    color: #07a;
+  }
+
+  .prism-default .token.function,
+  .prism-default .token.class-name {
+    color: #DD4A68;
+  }
+
+  .prism-default .token.regex,
+  .prism-default .token.important,
+  .prism-default .token.variable {
+    color: #e90;
+  }
+
+  /* Dark Theme (Tomorrow) */
+  .prism-tomorrow code[class*="language-"],
+  .prism-tomorrow pre[class*="language-"] {
+    color: #ccc;
+    background: none;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 1em;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    word-wrap: normal;
+    line-height: 1.5;
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
+  }
+
+  .prism-tomorrow .token.comment,
+  .prism-tomorrow .token.block-comment,
+  .prism-tomorrow .token.prolog,
+  .prism-tomorrow .token.doctype,
+  .prism-tomorrow .token.cdata {
+    color: #999;
+  }
+
+  .prism-tomorrow .token.punctuation {
+    color: #ccc;
+  }
+
+  .prism-tomorrow .token.tag,
+  .prism-tomorrow .token.attr-name,
+  .prism-tomorrow .token.namespace,
+  .prism-tomorrow .token.deleted {
+    color: #e2777a;
+  }
+
+  .prism-tomorrow .token.function-name,
+  .prism-tomorrow .token.boolean,
+  .prism-tomorrow .token.number,
+  .prism-tomorrow .token.function {
+    color: #f08d49;
+  }
+
+  .prism-tomorrow .token.property,
+  .prism-tomorrow .token.class-name,
+  .prism-tomorrow .token.constant,
+  .prism-tomorrow .token.symbol {
+    color: #f8c555;
+  }
+
+  .prism-tomorrow .token.selector,
+  .prism-tomorrow .token.important,
+  .prism-tomorrow .token.atrule,
+  .prism-tomorrow .token.keyword,
+  .prism-tomorrow .token.builtin {
+    color: #cc99cd;
+  }
+
+  .prism-tomorrow .token.string,
+  .prism-tomorrow .token.char,
+  .prism-tomorrow .token.attr-value,
+  .prism-tomorrow .token.regex,
+  .prism-tomorrow .token.variable {
+    color: #7ec699;
+  }
+
+  .prism-tomorrow .token.operator,
+  .prism-tomorrow .token.entity,
+  .prism-tomorrow .token.url {
+    color: #67cdcc;
   }
 }
