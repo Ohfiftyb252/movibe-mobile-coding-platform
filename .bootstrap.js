@@ -77,11 +77,7 @@ function updateWranglerJsonc() {
 }
 
 function runSetupCommands() {
-    const commands = [
-    "bun add react-simple-code-editor@^0.11.2",
-    "bun add prismjs@^1.29.0",
-    "bun add @types/prismjs@^1.26.0"
-];
+    const commands = [];
     
     if (commands.length === 0) {
         console.log('⊘ No setup commands to run');

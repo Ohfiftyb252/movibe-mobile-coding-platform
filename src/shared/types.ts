@@ -1,0 +1,25 @@
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+export interface Player {
+  id: string;
+  name: string;
+  ovCoin: number;
+  inventory: {
+    hats: string[];
+  };
+  consecutiveLosses: number;
+  debt: number;
+  heat: number;
+  luck: number;
+  corruption: number;
+  spinsSinceBigWin?: number;
+  lastLoginAt?: number;
+  loginStreak?: number;
+  title?: string;
+  lastBonusClaimedAt?: number;
+  lastNearMissAt?: number;
+  totalRegrets?: number;
+}
