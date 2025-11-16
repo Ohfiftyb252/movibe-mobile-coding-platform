@@ -10,6 +10,7 @@ import { Header } from '@/components/movibe/Header';
 import { FileTree } from '@/components/movibe/FileTree';
 import { CodeEditor } from '@/components/movibe/Editor';
 import { Preview } from '@/components/movibe/Preview';
+import { Console } from '@/components/movibe/Console';
 import { useState } from 'react';
 import { useProjectLoader } from '@/hooks/use-project-loader';
 import { useAutoSave } from '@/hooks/use-auto-save';
@@ -53,9 +54,13 @@ export function HomePage() {
               <TabsContent value="preview" className="flex-1 overflow-auto bg-white">
                 <Preview />
               </TabsContent>
-              <TabsList className="grid w-full grid-cols-2 rounded-none h-12">
+              <TabsContent value="console" className="flex-1 overflow-auto">
+                <Console />
+              </TabsContent>
+              <TabsList className="grid w-full grid-cols-3 rounded-none h-12">
                 <TabsTrigger value="editor">Editor</TabsTrigger>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
+                <TabsTrigger value="console">Console</TabsTrigger>
               </TabsList>
             </Tabs>
           </main>
@@ -75,14 +80,18 @@ export function HomePage() {
             <FileTree />
           </Panel>
           <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
-          <Panel defaultSize={80}>
-            <PanelGroup direction="horizontal">
-              <Panel defaultSize={50} minSize={30}>
-                <CodeEditor />
-              </Panel>
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
-              <Panel defaultSize={50} minSize={30}>
+          <Panel defaultSize={40} minSize={30}>
+            <CodeEditor />
+          </Panel>
+          <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
+          <Panel defaultSize={40} minSize={30}>
+            <PanelGroup direction="vertical">
+              <Panel defaultSize={60} minSize={20}>
                 <Preview />
+              </Panel>
+              <PanelResizeHandle className="h-1 bg-border hover:bg-primary transition-colors" />
+              <Panel defaultSize={40} minSize={20}>
+                <Console />
               </Panel>
             </PanelGroup>
           </Panel>

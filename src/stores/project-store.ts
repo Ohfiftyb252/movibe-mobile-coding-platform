@@ -14,6 +14,9 @@ export type ProjectActions = {
   updateFileContent: (fileId: string, content: string) => void;
   loadProject: (projectId: string) => Promise<void>;
   updateProject: () => Promise<void>;
+  createFile: (fileName: string) => void;
+  deleteFile: (fileId: string) => void;
+  renameProject: (newName: string) => void;
 };
 export const useProjectStore = create<ProjectState & ProjectActions>()(
   immer((set, get) => ({
@@ -64,10 +67,48 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
         });
       } catch (error) {
         console.error('Failed to save project:', error);
-        // Optionally set an error state here
       } finally {
         set({ isSaving: false });
       }
+    },
+    createFile: (fileName) => {
+      set((state) => {
+        if (!state.project) return;
+        if (state.project.files[fileName]) {
+          // Simple alert for now, could be a more robust notification
+          alert(`File "${fileName}" already exists.`);
+          return;
+        }
+        const extension = fileName.split('.').pop()?.toLowerCase();
+        let language: ProjectFile['language'] = 'javascript';
+        if (extension === 'html') language = 'html';
+        if (extension === 'css') language = 'css';
+        const newFile: ProjectFile = {
+          id: fileName,
+          name: fileName,
+          content: '',
+          language,
+        };
+        state.project.files[fileName] = newFile;
+        state.activeFileId = fileName;
+      });
+    },
+    deleteFile: (fileId) => {
+      set((state) => {
+        if (!state.project || !state.project.files[fileId]) return;
+        delete state.project.files[fileId];
+        if (state.activeFileId === fileId) {
+          const remainingFiles = Object.keys(state.project.files);
+          state.activeFileId = remainingFiles.length > 0 ? remainingFiles[0] : null;
+        }
+      });
+    },
+    renameProject: (newName) => {
+      set((state) => {
+        if (state.project) {
+          state.project.name = newName;
+        }
+      });
     },
   }))
 );
