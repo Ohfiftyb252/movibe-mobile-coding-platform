@@ -1,14 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Card as UICard, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Coins } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { PlayingCard } from '@/components/PlayingCard';
 import * as Tonk from '@/lib/game-logic/tonk';
-import { AnimatePresence, motion } from 'framer-motion';
+import { shuffleDeck } from '@/lib/game-logic/blackjack';
 import { cn } from '@/lib/utils';
 type GameStage = 'betting' | 'playing' | 'finished';
 export function VulturesNestPage() {
@@ -27,7 +27,7 @@ export function VulturesNestPage() {
       toast.error("Invalid bet.");
       return;
     }
-    const deck = Tonk.shuffleDeck(Tonk.createTonkDeck());
+    const deck = shuffleDeck(Tonk.createTonkDeck());
     const { players, remainingDeck } = Tonk.dealHands(deck, ['player', 'opponent']);
     const discardPile = [remainingDeck.pop()!];
     setGameState({

@@ -93,7 +93,9 @@ export const computerPlayerTurn = (gameState: GameState, computerId: string): Ga
   let newState = { ...gameState };
   const computer = newState.players[computerId];
   // 1. Draw
-  newState.deck.length > 0 ? computer.hand.push(newState.deck.pop()!) : void 0;
+  if (newState.deck.length > 0) {
+    computer.hand.push(newState.deck.pop()!);
+  }
   // 2. Play Spreads
   const newSpreads = findSpreadsInHand(computer.hand);
   if (newSpreads.length > 0) {

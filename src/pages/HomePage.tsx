@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dices, Gem, Trash2, Bird } from 'lucide-react';
+import { Dices, Gem, Trash2, Bird, Crosshair } from 'lucide-react';
 const locations = [
   {
     to: '/location/back-alley',
@@ -32,6 +32,13 @@ const locations = [
     icon: Bird,
     glitchText: 'VU1TUR3_N3ST',
   },
+  {
+    to: '/location/gander-gallery',
+    title: 'The Glitchy Gander Gallery',
+    description: 'Shoot pixelated ducks for fun and profit. The hit detection is a feature.',
+    icon: Crosshair,
+    glitchText: 'G@NDER_G@LLERY',
+  },
 ];
 export function HomePage() {
   return (
@@ -44,7 +51,7 @@ export function HomePage() {
           Your premier digital dive bar for consequence-free bad decisions.
         </p>
       </div>
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 animate-slide-up">
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 animate-slide-up">
         {locations.map((loc) => (
           <Card key={loc.to} className="bg-black/50 border-ov-primary/20 hover:border-ov-primary/60 transition-all duration-300 transform hover:-translate-y-1 group flex flex-col">
             <CardHeader className="flex-row items-center gap-4 space-y-0">

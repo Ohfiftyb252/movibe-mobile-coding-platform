@@ -13,6 +13,7 @@ import { DataDumpPage } from '@/pages/DataDumpPage';
 import { CryptoCarnivalPage } from '@/pages/CryptoCarnivalPage';
 import { InventoryPage } from '@/pages/InventoryPage';
 import { VulturesNestPage } from '@/pages/VulturesNestPage';
+import { GanderGalleryPage } from '@/pages/GanderGalleryPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -37,6 +38,11 @@ const router = createBrowserRouter([
   {
     path: "/location/vultures-nest",
     element: <VulturesNestPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/location/gander-gallery",
+    element: <GanderGalleryPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {
