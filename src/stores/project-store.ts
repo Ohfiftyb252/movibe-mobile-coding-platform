@@ -7,6 +7,7 @@ export type ProjectState = {
   activeFileId: string | null;
   isLoading: boolean;
   error: string | null;
+  isSaving: boolean;
 };
 export type ProjectActions = {
   setActiveFile: (fileId: string) => void;
@@ -20,6 +21,7 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
     activeFileId: null,
     isLoading: true,
     error: null,
+    isSaving: false,
     loadProject: async (projectId) => {
       set({ isLoading: true, error: null });
       try {
@@ -54,6 +56,7 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
     updateProject: async () => {
       const { project } = get();
       if (!project) return;
+      set({ isSaving: true });
       try {
         await api(`/api/projects/${project.id}`, {
           method: 'PUT',
@@ -62,6 +65,8 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
       } catch (error) {
         console.error('Failed to save project:', error);
         // Optionally set an error state here
+      } finally {
+        set({ isSaving: false });
       }
     },
   }))

@@ -6,7 +6,7 @@ type FileTreeProps = {
   onFileSelect?: () => void;
 };
 export function FileTree({ onFileSelect }: FileTreeProps) {
-  const files = useProjectStore((s) => Object.values(s.files));
+  const files = useProjectStore((s) => (s.project ? Object.values(s.project.files) : []));
   const activeFileId = useProjectStore((s) => s.activeFileId);
   const setActiveFile = useProjectStore((s) => s.setActiveFile);
   return (

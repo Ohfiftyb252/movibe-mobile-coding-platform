@@ -9,7 +9,9 @@ import 'prismjs/themes/prism-tomorrow.css';
 import { useProjectStore } from '@/stores/project-store';
 export function CodeEditor() {
   const activeFileId = useProjectStore((s) => s.activeFileId);
-  const activeFile = useProjectStore((s) => (s.activeFileId ? s.files[s.activeFileId] : null));
+  const activeFile = useProjectStore((s) =>
+    s.project && s.activeFileId ? s.project.files[s.activeFileId] : null
+  );
   const updateFileContent = useProjectStore((s) => s.updateFileContent);
   const handleValueChange = (code: string) => {
     if (activeFileId) {

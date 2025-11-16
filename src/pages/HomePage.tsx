@@ -12,10 +12,12 @@ import { CodeEditor } from '@/components/movibe/Editor';
 import { Preview } from '@/components/movibe/Preview';
 import { useState } from 'react';
 import { useProjectLoader } from '@/hooks/use-project-loader';
+import { useAutoSave } from '@/hooks/use-auto-save';
 export function HomePage() {
   const isMobile = useIsMobile();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const { isLoading, error } = useProjectLoader('default-project');
+  useAutoSave();
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background text-foreground">
