@@ -11,4 +11,8 @@ export interface Player {
     hats: string[];
   };
   consecutiveLosses: number;
+  debt: number;
+  heat: number;
+  luck: number;
+  corruption: number;
 }

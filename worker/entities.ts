@@ -8,10 +8,24 @@ export const MOCK_PLAYER: Player = {
     hats: [],
   },
   consecutiveLosses: 0,
+  debt: 0,
+  heat: 0,
+  luck: 50,
+  corruption: 0,
 };
 export class PlayerEntity extends IndexedEntity<Player> {
   static readonly entityName = "player";
   static readonly indexName = "players";
-  static readonly initialState: Player = { id: "", name: "", ovCoin: 0, inventory: { hats: [] }, consecutiveLosses: 0 };
+  static readonly initialState: Player = { 
+    id: "", 
+    name: "", 
+    ovCoin: 0, 
+    inventory: { hats: [] }, 
+    consecutiveLosses: 0,
+    debt: 0,
+    heat: 0,
+    luck: 50,
+    corruption: 0
+  };
   static seedData = [MOCK_PLAYER];
 }
