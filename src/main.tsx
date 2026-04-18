@@ -16,52 +16,18 @@ import { VulturesNestPage } from '@/pages/VulturesNestPage';
 import { GanderGalleryPage } from '@/pages/GanderGalleryPage';
 import { TheGlitchPage } from '@/pages/TheGlitchPage';
 import { ZombieOutbreakPage } from '@/pages/ZombieOutbreakPage';
+import { GlitchSquarePage } from '@/pages/GlitchSquarePage';
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <HomePage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/location/back-alley",
-    element: <BackAlleyPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/location/crypto-carnival",
-    element: <CryptoCarnivalPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/location/data-dump",
-    element: <DataDumpPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/location/vultures-nest",
-    element: <VulturesNestPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/location/gander-gallery",
-    element: <GanderGalleryPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/location/the-glitch",
-    element: <TheGlitchPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/location/zombie-outbreak",
-    element: <ZombieOutbreakPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/inventory",
-    element: <InventoryPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
+  { path: "/", element: <HomePage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/location/back-alley", element: <BackAlleyPage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/location/crypto-carnival", element: <CryptoCarnivalPage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/location/data-dump", element: <DataDumpPage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/location/vultures-nest", element: <VulturesNestPage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/location/gander-gallery", element: <GanderGalleryPage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/location/the-glitch", element: <TheGlitchPage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/location/zombie-outbreak", element: <ZombieOutbreakPage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/location/glitch-square", element: <GlitchSquarePage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/inventory", element: <InventoryPage />, errorElement: <RouteErrorBoundary /> },
 ]);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

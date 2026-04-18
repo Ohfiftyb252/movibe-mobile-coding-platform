@@ -10,16 +10,17 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number) {
       timeout = null;
       func(...args);
     };
-    if (timeout) {
-      clearTimeout(timeout);
-    }
+    if (timeout) clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
 }
-interface PlayerWithRegret extends Player {
-  spinsSinceBigWin: number;
+interface PlayerWithMeta extends Player {
+  lastLoginAt: number;
+  loginStreak: number;
+  title: string;
+  lastBonusClaimedAt: number;
 }
-const DEFAULT_PLAYER_STATE: Omit<PlayerWithRegret, 'id' | 'name'> = {
+const DEFAULT_PLAYER_STATE: Omit<PlayerWithMeta, 'id' | 'name'> = {
   ovCoin: 0,
   inventory: { hats: [] },
   consecutiveLosses: 0,
@@ -28,15 +29,18 @@ const DEFAULT_PLAYER_STATE: Omit<PlayerWithRegret, 'id' | 'name'> = {
   luck: 50,
   corruption: 0,
   spinsSinceBigWin: 99,
+  lastLoginAt: 0,
+  loginStreak: 0,
+  title: 'Fresh Meat',
+  lastBonusClaimedAt: 0,
 };
 type PlayerState = {
-  player: PlayerWithRegret | null;
+  player: PlayerWithMeta | null;
   isLoading: boolean;
   error: string | null;
   loadPlayer: (id: string) => Promise<void>;
-  updatePlayer: (id: string, updates: Partial<PlayerWithRegret>) => Promise<void>;
+  updatePlayer: (id: string, updates: Partial<PlayerWithMeta>) => Promise<void>;
   setOvCoin: (amount: number) => void;
-  _setOvCoinAndUpdate: (amount: number) => void;
   recordLoss: () => void;
   resetLosses: () => void;
   addHeat: (amount: number) => void;
@@ -46,25 +50,27 @@ type PlayerState = {
   incrementSpinsSinceBigWin: () => void;
   resetSpinsSinceBigWin: () => void;
   smashTerminal: () => void;
+  checkDailyStatus: () => void;
+  claimDailyBonus: () => void;
 };
 export const usePlayerStore = create<PlayerState>()(
   immer((set, get) => {
+    const calculateTitle = (p: PlayerWithMeta): string => {
+      if (p.debt > 50000) return 'Financial Black Hole';
+      if (p.corruption > 80) return 'Glitch Architect';
+      if (p.debt > 10000) return 'Debt Addict';
+      if (p.luck > 80) return 'Lucky Fool';
+      if (p.corruption > 50) return 'Glitch Survivor';
+      if (p.consecutiveLosses > 10) return 'The House’s Favorite';
+      return p.title || 'Fresh Meat';
+    };
     const debouncedUpdate = debounce(async () => {
       const { player } = get();
       if (!player) return;
       try {
-        await api<PlayerWithRegret>(`/api/player/${player.id}`, {
+        await api(`/api/player/${player.id}`, {
           method: 'POST',
-          body: JSON.stringify({
-            ovCoin: player.ovCoin,
-            inventory: player.inventory,
-            consecutiveLosses: player.consecutiveLosses,
-            debt: player.debt,
-            heat: player.heat,
-            luck: player.luck,
-            corruption: player.corruption,
-            spinsSinceBigWin: player.spinsSinceBigWin,
-          }),
+          body: JSON.stringify(player),
         });
       } catch (error) {
         console.error(error);
@@ -78,16 +84,11 @@ export const usePlayerStore = create<PlayerState>()(
         set({ isLoading: true, error: null });
         try {
           const rawPlayer = await api<any>(`/api/player/${id}`);
-          const mergedPlayer: PlayerWithRegret = {
+          const merged: PlayerWithMeta = {
             ...DEFAULT_PLAYER_STATE,
             ...rawPlayer,
-            inventory: {
-              ...DEFAULT_PLAYER_STATE.inventory,
-              ...(rawPlayer.inventory || {}),
-            },
-            spinsSinceBigWin: rawPlayer.spinsSinceBigWin ?? 99,
           };
-          set({ player: mergedPlayer, isLoading: false });
+          set({ player: merged, isLoading: false });
         } catch (error) {
           set({ error: (error as Error).message, isLoading: false });
         }
@@ -96,119 +97,127 @@ export const usePlayerStore = create<PlayerState>()(
         set((state) => {
           if (state.player) {
             Object.assign(state.player, updates);
+            state.player.title = calculateTitle(state.player);
           }
         });
-        try {
-          await api<PlayerWithRegret>(`/api/player/${id}`, {
-            method: 'POST',
-            body: JSON.stringify(updates)
-          });
-        } catch (error) {
-          console.error(error);
-        }
-      },
-      _setOvCoinAndUpdate: (amount) => {
-        set((state) => { if (state.player) state.player.ovCoin = amount; });
         debouncedUpdate();
       },
       setOvCoin: (amount) => {
-        const player = get().player;
-        if (!player) return;
-        if (amount < 0) {
-          toast.error("SYSTEM DEFICIT", {
-            description: "You've gone past zero. The Vultures are calculating your organ market value.",
-            duration: 5000,
-          });
-          set(state => {
-            if (state.player) {
-              state.player.debt += Math.abs(amount);
-              state.player.ovCoin = 0;
-            }
-          });
-          debouncedUpdate();
-        } else if (amount === 0 && player.ovCoin > 0) {
-          toast.info("PITY PARTY!", {
-            description: "You're broke. Here's a hat and 500 O.V. Coin. That's more debt for you.",
-            duration: 5000,
-          });
-          set(state => {
-            if (state.player) {
-              if (!state.player.inventory.hats.includes("Pity Party")) {
-                state.player.inventory.hats.push("Pity Party");
-              }
-              state.player.ovCoin = 500;
-              state.player.debt += 500;
-            }
-          });
-          debouncedUpdate();
-        } else {
-          get()._setOvCoinAndUpdate(amount);
-        }
+        set((state) => {
+          if (!state.player) return;
+          if (amount < 0) {
+            state.player.debt += Math.abs(amount);
+            state.player.ovCoin = 0;
+            toast.error("SYSTEM DEFICIT", { description: "Debt accrued. Organ value recalculated." });
+          } else if (amount === 0 && state.player.ovCoin > 0) {
+            state.player.ovCoin = 500;
+            state.player.debt += 500;
+            if (!state.player.inventory.hats.includes("Pity Party")) state.player.inventory.hats.push("Pity Party");
+            toast.info("PITY PARTY", { description: "You're broke. Here's 500 OVC (on credit)." });
+          } else {
+            state.player.ovCoin = amount;
+          }
+          state.player.title = calculateTitle(state.player);
+        });
+        debouncedUpdate();
       },
       recordLoss: () => {
-        set(state => { if (state.player) state.player.consecutiveLosses += 1; });
+        set((state) => { 
+          if (state.player) {
+            state.player.consecutiveLosses += 1;
+            state.player.title = calculateTitle(state.player);
+          }
+        });
         debouncedUpdate();
       },
       resetLosses: () => {
-        set(state => { if (state.player) state.player.consecutiveLosses = 0; });
+        set((state) => { if (state.player) state.player.consecutiveLosses = 0; });
         debouncedUpdate();
       },
       addHeat: (amount) => {
-        set(state => { if (state.player) state.player.heat = Math.max(0, (state.player.heat ?? 0) + amount); });
+        set((state) => { if (state.player) state.player.heat = Math.max(0, state.player.heat + amount); });
         debouncedUpdate();
       },
       adjustLuck: (amount) => {
-        set(state => {
+        set((state) => {
           if (state.player) {
-            const currentLuck = state.player.luck ?? 50;
-            state.player.luck = Math.min(100, Math.max(0, currentLuck + amount));
+            state.player.luck = Math.min(100, Math.max(0, state.player.luck + amount));
+            state.player.title = calculateTitle(state.player);
           }
         });
         debouncedUpdate();
       },
       increaseCorruption: (amount) => {
-        set(state => { if (state.player) state.player.corruption = Math.min(100, (state.player.corruption ?? 0) + amount); });
+        set((state) => {
+          if (state.player) {
+            state.player.corruption = Math.min(100, state.player.corruption + amount);
+            state.player.title = calculateTitle(state.player);
+          }
+        });
         debouncedUpdate();
       },
       addDebt: (amount) => {
-        set(state => { if (state.player) state.player.debt = (state.player.debt ?? 0) + amount; });
+        set((state) => { if (state.player) state.player.debt += amount; });
         debouncedUpdate();
       },
       incrementSpinsSinceBigWin: () => {
-        set(state => { if (state.player) state.player.spinsSinceBigWin += 1; });
+        set((state) => { if (state.player) state.player.spinsSinceBigWin += 1; });
         debouncedUpdate();
       },
       resetSpinsSinceBigWin: () => {
-        set(state => { if (state.player) state.player.spinsSinceBigWin = 0; });
+        set((state) => { if (state.player) state.player.spinsSinceBigWin = 0; });
         debouncedUpdate();
       },
       smashTerminal: () => {
-        const p = get().player;
-        if (!p) return;
-        const reward = Math.floor(Math.random() * 41) + 10; // 10-50
-        const lockRisk = Math.random() < 0.1;
-        if (lockRisk) {
-          toast.error("SECURITY LOCKOUT", {
-            description: "You smashed too hard. Biometrics wiped. Wallet drained by security fees.",
-          });
-          set(state => {
-            if (state.player) {
+        const reward = Math.floor(Math.random() * 41) + 10;
+        set((state) => {
+          if (state.player) {
+            if (Math.random() < 0.1) {
               state.player.ovCoin = 0;
               state.player.heat += 50;
-            }
-          });
-        } else {
-          toast.success("CATHARSIS", {
-            description: `You kicked the terminal. ${reward} O.V.C fell out. The guards are watching.`,
-          });
-          set(state => {
-            if (state.player) {
+              toast.error("SECURITY LOCKOUT", { description: "Biometrics wiped. Fees deducted." });
+            } else {
               state.player.ovCoin += reward;
               state.player.heat += 15;
+              toast.success("CATHARSIS", { description: `You kicked the machine. +${reward} OVC.` });
+            }
+          }
+        });
+        debouncedUpdate();
+      },
+      checkDailyStatus: () => {
+        const p = get().player;
+        if (!p) return;
+        const now = Date.now();
+        const last = p.lastLoginAt || 0;
+        const diffHours = (now - last) / (1000 * 60 * 60);
+        if (diffHours >= 24 && diffHours < 48) {
+          set(s => { if (s.player) s.player.loginStreak += 1; });
+        } else if (diffHours >= 48) {
+          set(s => { if (s.player) s.player.loginStreak = 1; });
+          toast.info("THE HOUSE MISSED YOU", { description: "Streak reset. We were starting to worry." });
+        }
+        set(s => { if (s.player) s.player.lastLoginAt = now; });
+        debouncedUpdate();
+      },
+      claimDailyBonus: () => {
+        const p = get().player;
+        if (!p) return;
+        const now = Date.now();
+        const lastClaim = p.lastBonusClaimedAt || 0;
+        const isNewDay = new Date(now).toDateString() !== new Date(lastClaim).toDateString();
+        if (isNewDay) {
+          const bonus = 100 + (p.loginStreak * 50);
+          set(s => {
+            if (s.player) {
+              s.player.ovCoin += bonus;
+              s.player.lastBonusClaimedAt = now;
+              s.player.corruption += 1;
             }
           });
+          toast.success("DAILY CORRUPTION BONUS", { description: `+${bonus} OVC. Spend it before your conscience returns.` });
+          debouncedUpdate();
         }
-        debouncedUpdate();
       }
     };
   })

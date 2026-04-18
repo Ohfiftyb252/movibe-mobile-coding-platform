@@ -13,6 +13,10 @@ export const MOCK_PLAYER: Player = {
   luck: 50,
   corruption: 0,
   spinsSinceBigWin: 99,
+  lastLoginAt: Date.now(),
+  loginStreak: 0,
+  title: 'Fresh Meat',
+  lastBonusClaimedAt: 0,
 };
 export class PlayerEntity extends IndexedEntity<Player> {
   static readonly entityName = "player";
@@ -27,7 +31,11 @@ export class PlayerEntity extends IndexedEntity<Player> {
     heat: 0,
     luck: 50,
     corruption: 0,
-    spinsSinceBigWin: 99
+    spinsSinceBigWin: 99,
+    lastLoginAt: 0,
+    loginStreak: 0,
+    title: 'Fresh Meat',
+    lastBonusClaimedAt: 0
   };
   static seedData = [MOCK_PLAYER];
 }
