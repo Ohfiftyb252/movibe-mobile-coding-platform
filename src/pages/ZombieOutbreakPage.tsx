@@ -24,13 +24,13 @@ export function ZombieOutbreakPage() {
   const [score, setScore] = useState(0);
   const [wave, setWave] = useState(1);
   const [lives, setLives] = useState(INITIAL_LIVES);
-  const createZombie = useCallback((id: number): ZombieInfo => {
+  const createZombie = useCallback((id: number, currentWave: number): ZombieInfo => {
     return {
       id,
-      initialX: Math.random() * (window.innerWidth * 0.9),
-      duration: Math.random() * 3 + (8 - wave * 0.5), // Zombies get faster each wave
+      initialX: Math.random() * (window.innerWidth * 0.8) + (window.innerWidth * 0.05),
+      duration: Math.max(2, 8 - (currentWave * 0.4) - (Math.random() * 2)), 
     };
-  }, [wave]);
+  }, []);
   const startGame = () => {
     if (!player || player.ovCoin < COST_PER_GAME) {
       toast.error(`You need ${COST_PER_GAME} O.V. Coin to play.`);
@@ -41,114 +41,123 @@ export function ZombieOutbreakPage() {
     setWave(1);
     setLives(INITIAL_LIVES);
     setGameState('playing');
+    setZombies([]);
   };
   const handleShoot = useCallback((id: number) => {
     setScore(prev => prev + 1);
     setZombies(prev => prev.filter(z => z.id !== id));
   }, []);
-  const handleZombieEscape = useCallback((id: number) => {
+  const handleEscape = useCallback((id: number) => {
     setZombies(prev => prev.filter(z => z.id !== id));
     setLives(prev => prev - 1);
   }, []);
-  // Wave Management
+  // Effect to spawn new wave when 'wave' counter increases
   useEffect(() => {
     if (gameState !== 'playing') return;
     const zombiesToSpawn = wave * 2 + 3;
-    const initialZombies = Array.from({ length: zombiesToSpawn }, (_, i) => createZombie(Date.now() + i));
-    setZombies(initialZombies);
-    const waveTimer = setInterval(() => {
-      if (zombies.length === 0) {
-        setWave(prev => prev + 1);
-      }
-    }, 1000);
-    return () => clearInterval(waveTimer);
-  }, [gameState, wave, createZombie, zombies.length]);
-  // Zombie Escape Listener
+    const newHorde = Array.from({ length: zombiesToSpawn }, (_, i) => 
+      createZombie(Date.now() + i + (wave * 1000), wave)
+    );
+    setZombies(newHorde);
+    toast.info(`WAVE ${wave} STARTING...`);
+  }, [gameState, wave, createZombie]);
+  // Effect to monitor wave completion
   useEffect(() => {
-    if (gameState !== 'playing') return;
-    const escapeCheckInterval = setInterval(() => {
-      const gameArea = document.getElementById('game-area');
-      if (!gameArea) return;
-      const gameAreaHeight = gameArea.clientHeight;
-      document.querySelectorAll('.zombie-instance').forEach(zombieEl => {
-        const zombieId = parseInt(zombieEl.getAttribute('data-id') || '0', 10);
-        const rect = zombieEl.getBoundingClientRect();
-        if (rect.top > gameAreaHeight) {
-          handleZombieEscape(zombieId);
-        }
-      });
-    }, 100);
-    return () => clearInterval(escapeCheckInterval);
-  }, [gameState, handleZombieEscape]);
+    if (gameState === 'playing' && zombies.length === 0) {
+      // Small delay before next wave for pacing
+      const timer = setTimeout(() => {
+        setWave(prev => prev + 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [zombies.length, gameState]);
   // Game Over
   useEffect(() => {
     if (lives <= 0 && gameState === 'playing') {
       setGameState('finished');
-      const winnings = score * 5; // 5 coins per zombie
+      const winnings = score * 5;
       if (winnings > 0 && player) {
-        toast.success(`You survived ${wave - 1} waves and killed ${score} zombies. You earned ${winnings} O.V. Coin!`);
-        setOvCoin(player.ovCoin - COST_PER_GAME + winnings);
+        toast.success(`DEFEATED. Killed ${score} zombies. Earned ${winnings} O.V. Coin.`);
+        // Payout logic
+        setOvCoin(player.ovCoin + winnings);
       } else {
-        toast.error(`The horde overwhelmed you. You survived ${wave - 1} waves.`);
+        toast.error(`THE HORDE HAS CONSUMED YOU.`);
       }
       setZombies([]);
     }
-  }, [lives, gameState, wave, score, player, setOvCoin]);
+  }, [lives, gameState, score, player, setOvCoin]);
   return (
     <OVWLayout>
-      <div className="text-center animate-fade-in relative z-10">
+      <div className="text-center animate-fade-in relative z-10 pointer-events-none">
         <h1 className="text-4xl md:text-6xl font-display font-bold uppercase glitch-text" data-text="The Quarantine Zone">
           The Quarantine Zone
         </h1>
         <p className="mt-4 text-lg text-ov-gray max-w-xl mx-auto">
-          It costs 100 O.V. Coin for supplies. Each kill is worth 5. Don't let them reach the bottom.
+          Pay 100. Kill for 5. Survival is not an option.
         </p>
       </div>
-      <div id="game-area" className="fixed inset-0 w-screen h-screen overflow-hidden bg-gray-800/80 cursor-crosshair">
+      <div id="game-area" className="fixed inset-0 w-screen h-screen overflow-hidden bg-gray-900/40 cursor-crosshair">
         {zombies.map(zombie => (
-          <div key={zombie.id} className="zombie-instance" data-id={zombie.id}>
-            <Zombie {...zombie} onShoot={handleShoot} />
-          </div>
+          <Zombie 
+            key={zombie.id} 
+            {...zombie} 
+            onShoot={handleShoot} 
+            onEscape={handleEscape}
+          />
         ))}
       </div>
       <div className="relative z-30 mt-8 flex flex-col items-center">
         {gameState === 'idle' && (
-          <Button size="lg" onClick={startGame} className="animate-pulse">
+          <Button size="lg" onClick={startGame} className="animate-pulse bg-red-600 hover:bg-red-700 text-white">
             Pay {COST_PER_GAME} O.V. Coin to Enter
           </Button>
         )}
         {gameState === 'playing' && (
-          <Card className="bg-black/50 border-ov-primary/20">
+          <Card className="bg-black/70 border-ov-primary/40 backdrop-blur-md">
             <CardContent className="p-4 flex items-center gap-6">
-              <div className="flex items-center gap-2" title="Score">
-                <Coins className="w-6 h-6 text-ov-green" />
-                <span className="text-2xl font-bold">{score}</span>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[10px] uppercase text-ov-gray">Bounty</span>
+                <div className="flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-ov-green" />
+                  <span className="text-xl font-bold">{score}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2" title="Wave">
-                <Shield className="w-6 h-6 text-blue-400" />
-                <span className="text-2xl font-bold">{wave}</span>
+              <div className="w-px h-8 bg-ov-primary/20" />
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[10px] uppercase text-ov-gray">Threat</span>
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-blue-400" />
+                  <span className="text-xl font-bold">{wave}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2" title="Lives">
-                <Heart className="w-6 h-6 text-red-500" />
-                <span className="text-2xl font-bold">{lives}</span>
+              <div className="w-px h-8 bg-ov-primary/20" />
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[10px] uppercase text-ov-gray">Vitals</span>
+                <div className="flex items-center gap-2">
+                  <Heart className={lives === 1 ? "w-5 h-5 text-red-500 animate-pulse" : "w-5 h-5 text-red-500"} />
+                  <span className="text-xl font-bold">{lives}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
         {gameState === 'finished' && (
-          <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}>
-            <Card className="bg-black/50 border-ov-primary/20 text-center">
-              <CardHeader><CardTitle className="text-ov-primary">You Died</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-2xl">Final Score: {score}</p>
-                <p className="text-lg">Survived Waves: {wave - 1}</p>
-                <p className="text-lg text-ov-green">Winnings: {(score * 5).toLocaleString()} O.V. Coin</p>
-                <Button onClick={startGame} className="mt-4">Try Again (100 O.V. Coin)</Button>
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+            <Card className="bg-black/80 border-red-500/50 text-center max-w-sm">
+              <CardHeader><CardTitle className="text-red-500 font-display text-4xl uppercase">You Died</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xl uppercase tracking-widest text-ov-gray">Final Score: <span className="text-ov-green">{score}</span></p>
+                <p className="text-lg uppercase tracking-widest text-ov-gray">Waves Cleared: {wave - 1}</p>
+                <div className="p-4 bg-ov-green/10 border border-ov-green/30 rounded">
+                   <p className="text-sm uppercase text-ov-gray">Payout Received</p>
+                   <p className="text-2xl font-bold text-ov-green">{(score * 5).toLocaleString()} O.V.C</p>
+                </div>
+                <Button onClick={startGame} className="w-full h-12 uppercase bg-red-600 hover:bg-red-700">Respawn (100 O.V.C)</Button>
               </CardContent>
             </Card>
           </motion.div>
         )}
-        <Button asChild variant="link" className="mt-8 text-ov-primary hover:text-white transition-colors bg-black/30 backdrop-blur-sm">
+        <Button asChild variant="link" className="mt-8 text-ov-primary hover:text-white transition-colors bg-black/40 backdrop-blur-sm px-4">
           <Link to="/">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Return to the Dive Bar
