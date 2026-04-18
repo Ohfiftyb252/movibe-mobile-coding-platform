@@ -9,7 +9,13 @@ import { ArrowLeft, Coins, Skull, AlertTriangle, Flame, HelpCircle } from 'lucid
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-const Coin = ({ isFlipping, result, heat, isGlitching }: { isFlipping: boolean; result: 'heads' | 'tails' | null; heat: number; isGlitching: boolean }) => {
+const Coin = ({ isFlipping, result, heat, isGlitching, isEdge }: { 
+  isFlipping: boolean; 
+  result: 'heads' | 'tails' | null; 
+  heat: number; 
+  isGlitching: boolean;
+  isEdge: boolean;
+}) => {
   const [showRealityFlicker, setShowRealityFlicker] = useState(false);
   useEffect(() => {
     if (heat > 75 && !isFlipping) {
@@ -30,6 +36,7 @@ const Coin = ({ isFlipping, result, heat, isGlitching }: { isFlipping: boolean; 
           rotateY: isFlipping
             ? [0, 500, 480, 1000, 980, 1500, 1480, 1800]
             : (result === 'tails' ? 180 : 0),
+          rotateX: isEdge ? 90 : 0,
           scale: isFlipping ? 1.15 : 1
         }}
         transition={{
@@ -59,7 +66,11 @@ export function BackAlleyPage() {
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; };
+    document.body.classList.add('game-active');
+    return () => { 
+      mounted.current = false; 
+      document.body.classList.remove('game-active');
+    };
   }, []);
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
@@ -71,6 +82,7 @@ export function BackAlleyPage() {
   const [betAmount, setBetAmount] = useState<number | ''>(10);
   const [isFlipping, setIsFlipping] = useState(false);
   const [isGlitching, setIsGlitching] = useState(false);
+  const [isEdge, setIsEdge] = useState(false);
   const [coinResult, setCoinResult] = useState<'heads' | 'tails' | null>(null);
   const [feedback, setFeedback] = useState('TRUST THE COIN.');
   const [gameResult, setGameResult] = useState<'win' | 'loss' | null>(null);
@@ -80,8 +92,8 @@ export function BackAlleyPage() {
     if (!bet || bet <= 0) return;
     setIsFlipping(true);
     setGameResult(null);
+    setIsEdge(false);
     setFeedback('MANIPULATING PROBABILITY...');
-    // Deduct bet immediately
     const currentBalance = player.ovCoin;
     setOvCoin(currentBalance - bet);
     const midAirGlitchTrigger = isFixed || Math.random() < 0.2;
@@ -90,6 +102,23 @@ export function BackAlleyPage() {
     addHeat(isFixed ? 30 : 5);
     setTimeout(() => {
       if (!mounted.current) return;
+      const edgeEvent = !isFixed && Math.random() < 0.05;
+      if (edgeEvent) {
+        setIsFlipping(false);
+        setIsEdge(true);
+        setFeedback("…INTERESTING.");
+        setTimeout(() => {
+          if (!mounted.current) return;
+          setIsEdge(false);
+          setCoinResult(choice === 'heads' ? 'tails' : 'heads');
+          setGameResult('loss');
+          setFeedback("PHYSICS ARE SUBJECTIVE. YOU LOSE.");
+          recordLoss();
+          recordRegret();
+          setIsGlitching(false);
+        }, 1500);
+        return;
+      }
       const winChance = isFixed ? 0.05 : 0.38;
       const playerWins = Math.random() < winChance;
       const flipResult = playerWins ? choice : (choice === 'heads' ? 'tails' : 'heads');
@@ -109,9 +138,7 @@ export function BackAlleyPage() {
           resetLosses();
         } else {
           setGameResult('loss');
-          const lossFeedback = Math.random() < 0.3 ? "IT LANDED EXACTLY HOW IT WAS SUPPOSED TO." : "TOUGH BREAK.";
-          setFeedback(lossFeedback);
-          // Bet already deducted, just record loss stats
+          setFeedback(Math.random() < 0.3 ? "IT LANDED EXACTLY HOW IT WAS SUPPOSED TO." : "TOUGH BREAK.");
           recordLoss();
           recordRegret();
         }
@@ -128,98 +155,100 @@ export function BackAlleyPage() {
   const isTilted = losses >= 5;
   return (
     <OVWLayout>
-      <div className={cn("text-center animate-fade-in mb-12", gameResult === 'loss' && "shake-sm")}>
-        <h1 className="text-4xl md:text-6xl font-display font-bold uppercase glitch-text" data-text="Back Alley Arena">Back Alley Arena</h1>
-        <p className="mt-4 text-ov-gray uppercase tracking-widest text-xs italic">
-          {gameResult === 'loss' ? "THE COIN WAS NEVER ON YOUR SIDE." : "FAIR GAMES ARE FOR PEOPLE WITH MONEY TO SPARE."}
-        </p>
-      </div>
-      <Card className={cn(
-        "max-w-2xl mx-auto bg-black/50 border-ov-primary/20 p-8 flex flex-col items-center gap-12 transition-all duration-500 relative overflow-hidden",
-        gameResult === 'loss' && "border-red-500/50 shadow-[inset_0_0_50px_rgba(220,38,38,0.2)]"
-      )}>
-        {gameResult === 'loss' && <div className="absolute inset-0 bg-red-950/10 reality-glitch pointer-events-none" />}
-        <Coin isFlipping={isFlipping} result={coinResult} heat={heat} isGlitching={isGlitching} />
-        <div className="h-12 flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={feedback}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(
-                "text-2xl font-display uppercase text-center tracking-tighter",
-                gameResult === 'win' ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" :
-                gameResult === 'loss' ? "text-red-600 reality-glitch" : "text-ov-primary"
-              )}
-            >
-              {feedback}
-            </motion.p>
-          </AnimatePresence>
-        </div>
-        <div className="w-full max-w-sm space-y-6">
-          <div className="space-y-2">
-            <div className="flex justify-between text-[10px] uppercase font-bold text-ov-gray px-1">
-              <span>Wager Size</span>
-              <span>Balance: {(player?.ovCoin ?? 0).toLocaleString()}</span>
-            </div>
-            <div className="relative">
-              <Coins className="absolute left-3 top-3 w-5 h-5 text-ov-green" />
-              <Input
-                type="number"
-                value={betAmount}
-                onChange={(e) => setBetAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="bg-ov-dark border-ov-primary/20 text-xl pl-10 font-mono text-ov-green h-12"
-                disabled={isFlipping}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              size="lg"
-              onClick={() => handleFlip('heads')}
-              disabled={isFlipping}
-              className="bg-yellow-600 hover:bg-yellow-500 text-black font-black border-b-4 border-yellow-800 active:border-b-0 h-14 group"
-            >
-              <Skull className="w-4 h-4 mr-2 group-hover:animate-bounce" /> HEADS
-            </Button>
-            <Button
-              size="lg"
-              onClick={() => handleFlip('tails')}
-              disabled={isFlipping}
-              className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-black border-b-4 border-black active:border-b-0 h-14"
-            >
-              <HelpCircle className="w-4 h-4 mr-2" /> ALSO HEADS?
-            </Button>
-          </div>
-          {heat > 50 && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-              <Button
-                variant="destructive"
-                size="lg"
-                className="w-full h-20 border-2 border-red-500/50 bg-red-950/40 animate-pulse flex flex-col group overflow-hidden"
-                onClick={() => handleFlip('heads', true)}
-                disabled={isFlipping}
-              >
-                <div className="flex items-center gap-2 text-red-500 font-black">
-                  <Flame className="w-5 h-5 group-hover:animate-bounce" />
-                  RIG THE REVEAL
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <span className="text-[10px] opacity-70 tracking-[0.2em]">6X PAYOUT // GUARANTEED GLITCH</span>
-              </Button>
-            </motion.div>
-          )}
-        </div>
-      </Card>
-      <div className="mt-16 text-center space-y-4">
-        {isTilted && (
-          <p className="text-red-500 text-xs animate-bounce uppercase font-bold">
-            The machine knows you're angry. It likes it.
+      <div className="flex flex-col items-center justify-center min-h-[70vh]">
+        <div className={cn("text-center animate-fade-in mb-12 w-full", gameResult === 'loss' && "shake-sm")}>
+          <h1 className="text-4xl md:text-6xl font-display font-bold uppercase glitch-text" data-text="Back Alley Arena">Back Alley Arena</h1>
+          <p className="mt-4 text-ov-gray uppercase tracking-widest text-xs italic">
+            {gameResult === 'loss' ? "THE COIN WAS NEVER ON YOUR SIDE." : "FAIR GAMES ARE FOR PEOPLE WITH MONEY TO SPARE."}
           </p>
-        )}
-        <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase tracking-widest text-xs">
-          <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> RETREAT TO THE BAR</Link>
-        </Button>
+        </div>
+        <Card className={cn(
+          "w-full max-w-2xl mx-auto bg-black/50 border-ov-primary/20 p-8 flex flex-col items-center gap-12 transition-all duration-500 relative overflow-hidden",
+          gameResult === 'loss' && "border-red-500/50 shadow-[inset_0_0_50px_rgba(220,38,38,0.2)]"
+        )}>
+          {gameResult === 'loss' && <div className="absolute inset-0 bg-red-950/10 reality-glitch pointer-events-none" />}
+          <Coin isFlipping={isFlipping} result={coinResult} heat={heat} isGlitching={isGlitching} isEdge={isEdge} />
+          <div className="h-12 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={feedback}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "text-2xl font-display uppercase text-center tracking-tighter",
+                  gameResult === 'win' ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" :
+                  gameResult === 'loss' ? "text-red-600 reality-glitch" : "text-ov-primary"
+                )}
+              >
+                {feedback}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+          <div className="w-full max-w-sm space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px] uppercase font-bold text-ov-gray px-1">
+                <span>Wager Size</span>
+                <span>Balance: {(player?.ovCoin ?? 0).toLocaleString()}</span>
+              </div>
+              <div className="relative">
+                <Coins className="absolute left-3 top-3 w-5 h-5 text-ov-green" />
+                <Input
+                  type="number"
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="bg-ov-dark border-ov-primary/20 text-xl pl-10 font-mono text-ov-green h-12"
+                  disabled={isFlipping}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                size="lg"
+                onClick={() => handleFlip('heads')}
+                disabled={isFlipping}
+                className="bg-yellow-600 hover:bg-yellow-500 text-black font-black border-b-4 border-yellow-800 active:border-b-0 h-14 group"
+              >
+                <Skull className="w-4 h-4 mr-2 group-hover:animate-bounce" /> HEADS
+              </Button>
+              <Button
+                size="lg"
+                onClick={() => handleFlip('tails')}
+                disabled={isFlipping}
+                className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-black border-b-4 border-black active:border-b-0 h-14"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" /> ALSO HEADS?
+              </Button>
+            </div>
+            {heat > 50 && (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  className="w-full h-20 border-2 border-red-500/50 bg-red-950/40 animate-pulse flex flex-col group overflow-hidden"
+                  onClick={() => handleFlip('heads', true)}
+                  disabled={isFlipping}
+                >
+                  <div className="flex items-center gap-2 text-red-500 font-black">
+                    <Flame className="w-5 h-5 group-hover:animate-bounce" />
+                    RIG THE REVEAL
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] opacity-70 tracking-[0.2em]">6X PAYOUT // GUARANTEED GLITCH</span>
+                </Button>
+              </motion.div>
+            )}
+          </div>
+        </Card>
+        <div className="mt-16 text-center space-y-4">
+          {isTilted && (
+            <p className="text-red-500 text-xs animate-bounce uppercase font-bold">
+              The machine knows you're angry. It likes it.
+            </p>
+          )}
+          <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase tracking-widest text-xs">
+            <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> RETREAT TO THE BAR</Link>
+          </Button>
+        </div>
       </div>
     </OVWLayout>
   );

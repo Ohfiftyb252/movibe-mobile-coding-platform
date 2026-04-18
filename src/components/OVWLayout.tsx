@@ -117,9 +117,6 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
   const checkDailyStatus = usePlayerStore((s) => s.checkDailyStatus);
   const player = usePlayerStore((s) => s.player);
   const playerId = player?.id;
-  // Synchronization Note: The 'Tilted' state (losses >= 5) intensity 
-  // and overlay effects are driven by results from BackAlleyPage, 
-  // TheGlitchPage, and other competitive zones via player-store.
   const hasCheckedDaily = useRef(false);
   useEffect(() => {
     loadPlayer('PLAYER_ONE');
@@ -143,6 +140,27 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
   const isTilted = losses >= 5;
   return (
     <div className="min-h-screen bg-ov-dark text-ov-foreground font-mono selection:bg-ov-primary selection:text-black relative overflow-x-hidden">
+      <style>{`
+        body.game-active {
+          overflow: hidden !important;
+          height: 100vh !important;
+          width: 100vw !important;
+          position: fixed !important;
+        }
+        body.game-active main {
+          padding-top: 0 !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        body.game-active header {
+          opacity: 0.3;
+          pointer-events: none;
+        }
+        body.game-active footer {
+          display: none;
+        }
+      `}</style>
       <div className="fixed inset-0 pointer-events-none z-[100] scanline opacity-[0.03]"></div>
       <div className="fixed inset-0 pointer-events-none z-[101] vignette opacity-50"></div>
       {isTilted && <TiltedOverlay intensity={losses} />}
@@ -157,7 +175,7 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className={cn("max-w-7xl mx-auto px-4 transition-all duration-500", isTilted && "filter sepia-[0.3] hue-rotate-[340deg]")}>
-        <div className="py-8 pt-32 md:pt-40 lg:pt-44 min-h-screen">
+        <div className="py-8 pt-32 md:pt-40 lg:pt-44 min-h-screen w-full">
           {children}
         </div>
       </main>
