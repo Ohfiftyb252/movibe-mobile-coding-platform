@@ -19,28 +19,37 @@ function PlayerStats() {
   const error = usePlayerStore((s) => s.error);
   const prevLuckRef = useRef(50);
   const prevHeatRef = useRef(0);
+  const prevDebtRef = useRef(0);
   const [luckFlash, setLuckFlash] = useState(false);
   const [heatFlash, setHeatFlash] = useState(false);
+  const [debtFlash, setDebtFlash] = useState(false);
   useEffect(() => {
     if (player) {
       const currentLuck = player.luck ?? 50;
       const currentHeat = player.heat ?? 0;
-      if (Math.abs(currentLuck - prevLuckRef.current) > 5) {
+      const currentDebt = player.debt ?? 0;
+      if (Math.abs(currentLuck - prevLuckRef.current) >= 1) {
         setLuckFlash(true);
         setTimeout(() => setLuckFlash(false), 1000);
       }
-      if (Math.abs(currentHeat - prevHeatRef.current) > 10) {
+      if (Math.abs(currentHeat - prevHeatRef.current) >= 5) {
         setHeatFlash(true);
         setTimeout(() => setHeatFlash(false), 1000);
       }
+      if (currentDebt > prevDebtRef.current) {
+        setDebtFlash(true);
+        setTimeout(() => setDebtFlash(false), 2000);
+      }
       prevLuckRef.current = currentLuck;
       prevHeatRef.current = currentHeat;
+      prevDebtRef.current = currentDebt;
     }
   }, [player]);
-  const roast = useMemo(() => DEBT_ROASTS[Math.floor(Math.random() * DEBT_ROASTS.length)], []);
+  const roast = useMemo(() => DEBT_ROASTS[Math.floor(Math.random() * DEBT_ROASTS.length)], [debtFlash]);
   if (isLoading) return <div className="text-ov-gray animate-pulse text-xs tracking-widest font-bold">SYNCHRONIZING...</div>;
   if (error || !player) return <div className="text-red-500 text-xs font-bold uppercase animate-pulse">SYSTEM_FAULT: NO_DATA</div>;
   const debt = player.debt ?? 0;
+  const corruption = player.corruption ?? 0;
   return (
     <div className="flex flex-col gap-2 items-end">
       <div className="flex items-center gap-3">
@@ -48,17 +57,20 @@ function PlayerStats() {
           <div className={cn(
             "flex items-center gap-1.5 transition-all duration-300",
             heatFlash ? "text-red-500 scale-110 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" : "text-orange-500"
-          )} title="Heat (Attention Level)">
+          )} title="Heat">
             <Flame className={cn("w-3 h-3", heatFlash && "animate-bounce")} /> {player.heat ?? 0}
           </div>
           <div className={cn(
             "flex items-center gap-1.5 transition-all duration-300",
             luckFlash ? "text-ov-primary scale-110 drop-shadow-[0_0_8px_rgba(255,0,229,0.8)]" : "text-green-400"
-          )} title="Luck (Algorithmic Favor)">
+          )} title="Luck">
             <Clover className={cn("w-3 h-3", luckFlash && "animate-spin")} /> {player.luck ?? 50}%
           </div>
-          <div className="flex items-center gap-1.5 text-red-400 font-bold" title="Debt (Liquid Asset Denial)">
-            <Skull className="w-3 h-3" /> {debt.toLocaleString()}
+          <div className={cn(
+            "flex items-center gap-1.5 font-bold transition-all duration-500",
+            debtFlash ? "text-red-600 scale-125" : "text-red-400"
+          )} title="Debt">
+            <Skull className={cn("w-3 h-3", debtFlash && "animate-pulse")} /> {debt.toLocaleString()}
           </div>
         </div>
         <div className="flex items-center gap-3 bg-ov-green/5 border border-ov-green/30 px-4 py-1.5 rounded-lg shadow-[0_0_20px_rgba(0,255,156,0.05)]">
@@ -72,11 +84,13 @@ function PlayerStats() {
       <div className="w-32 sm:w-48 space-y-1">
         <div className="flex justify-between text-[10px] uppercase tracking-[0.2em] text-ov-primary/70 font-bold">
           <span>Corruption</span>
-          <span>{player.corruption ?? 0}%</span>
+          <span>{corruption}%</span>
         </div>
-        <Progress value={player.corruption ?? 0} className="h-1 bg-ov-primary/10" />
+        <div className={cn("relative", corruption > 75 && "shadow-[0_0_15px_rgba(255,0,229,0.3)]")}>
+          <Progress value={corruption} className="h-1 bg-ov-primary/10" />
+        </div>
       </div>
-      {debt > 1000 && (
+      {debtFlash && (
         <div className="fixed top-24 right-4 max-w-[280px] sm:max-w-xs animate-slide-up z-[70]">
           <div className="bg-red-950/90 border-2 border-red-500/50 p-3 rounded-xl backdrop-blur-xl shadow-[0_0_30px_rgba(239,68,68,0.2)] flex gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
@@ -92,6 +106,7 @@ function PlayerStats() {
 }
 export function OVWLayout({ children }: { children: React.ReactNode }) {
   const loadPlayer = usePlayerStore((s) => s.loadPlayer);
+  const corruption = usePlayerStore((s) => s.player?.corruption ?? 0);
   useEffect(() => {
     loadPlayer('PLAYER_ONE');
   }, [loadPlayer]);
@@ -101,11 +116,13 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
   }, []);
   return (
     <div className="min-h-screen bg-ov-dark text-ov-foreground font-mono selection:bg-ov-primary selection:text-black relative overflow-x-hidden">
-      {/* Background FX */}
       <div className="fixed inset-0 pointer-events-none z-[100] scanline opacity-[0.03]"></div>
       <div className="fixed inset-0 pointer-events-none z-[101] vignette opacity-50"></div>
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-5 pointer-events-none"></div>
-      <header className="fixed top-0 left-0 right-0 z-[60] p-4 backdrop-blur-2xl bg-ov-dark/80 border-b border-ov-primary/20">
+      <header className={cn(
+        "fixed top-0 left-0 right-0 z-[60] p-4 backdrop-blur-2xl bg-ov-dark/80 border-b border-ov-primary/20 transition-all duration-1000",
+        corruption > 85 && "border-ov-primary shadow-[0_0_30px_rgba(255,0,229,0.2)]"
+      )}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <Link
             to="/"

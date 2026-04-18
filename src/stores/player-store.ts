@@ -16,7 +16,10 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number) {
     timeout = setTimeout(later, wait);
   };
 }
-const DEFAULT_PLAYER_STATE: Omit<Player, 'id' | 'name'> = {
+interface PlayerWithRegret extends Player {
+  spinsSinceBigWin: number;
+}
+const DEFAULT_PLAYER_STATE: Omit<PlayerWithRegret, 'id' | 'name'> = {
   ovCoin: 0,
   inventory: { hats: [] },
   consecutiveLosses: 0,
@@ -24,13 +27,14 @@ const DEFAULT_PLAYER_STATE: Omit<Player, 'id' | 'name'> = {
   heat: 0,
   luck: 50,
   corruption: 0,
+  spinsSinceBigWin: 99,
 };
 type PlayerState = {
-  player: Player | null;
+  player: PlayerWithRegret | null;
   isLoading: boolean;
   error: string | null;
   loadPlayer: (id: string) => Promise<void>;
-  updatePlayer: (id: string, updates: Partial<Player>) => Promise<void>;
+  updatePlayer: (id: string, updates: Partial<PlayerWithRegret>) => Promise<void>;
   setOvCoin: (amount: number) => void;
   _setOvCoinAndUpdate: (amount: number) => void;
   recordLoss: () => void;
@@ -39,6 +43,8 @@ type PlayerState = {
   adjustLuck: (amount: number) => void;
   increaseCorruption: (amount: number) => void;
   addDebt: (amount: number) => void;
+  incrementSpinsSinceBigWin: () => void;
+  resetSpinsSinceBigWin: () => void;
 };
 export const usePlayerStore = create<PlayerState>()(
   immer((set, get) => {
@@ -46,7 +52,7 @@ export const usePlayerStore = create<PlayerState>()(
       const { player } = get();
       if (!player) return;
       try {
-        await api<Player>(`/api/player/${player.id}`, {
+        await api<PlayerWithRegret>(`/api/player/${player.id}`, {
           method: 'POST',
           body: JSON.stringify({
             ovCoin: player.ovCoin,
@@ -56,6 +62,7 @@ export const usePlayerStore = create<PlayerState>()(
             heat: player.heat,
             luck: player.luck,
             corruption: player.corruption,
+            spinsSinceBigWin: player.spinsSinceBigWin,
           }),
         });
       } catch (error) {
@@ -69,14 +76,15 @@ export const usePlayerStore = create<PlayerState>()(
       loadPlayer: async (id) => {
         set({ isLoading: true, error: null });
         try {
-          const rawPlayer = await api<Player>(`/api/player/${id}`);
-          const mergedPlayer: Player = {
+          const rawPlayer = await api<any>(`/api/player/${id}`);
+          const mergedPlayer: PlayerWithRegret = {
             ...DEFAULT_PLAYER_STATE,
             ...rawPlayer,
             inventory: {
               ...DEFAULT_PLAYER_STATE.inventory,
               ...(rawPlayer.inventory || {}),
-            }
+            },
+            spinsSinceBigWin: rawPlayer.spinsSinceBigWin ?? 99,
           };
           set({ player: mergedPlayer, isLoading: false });
         } catch (error) {
@@ -90,7 +98,7 @@ export const usePlayerStore = create<PlayerState>()(
           }
         });
         try {
-          await api<Player>(`/api/player/${id}`, {
+          await api<PlayerWithRegret>(`/api/player/${id}`, {
             method: 'POST',
             body: JSON.stringify(updates)
           });
@@ -149,7 +157,7 @@ export const usePlayerStore = create<PlayerState>()(
         debouncedUpdate();
       },
       adjustLuck: (amount) => {
-        set(state => { 
+        set(state => {
           if (state.player) {
             const currentLuck = state.player.luck ?? 50;
             state.player.luck = Math.min(100, Math.max(0, currentLuck + amount));
@@ -163,6 +171,14 @@ export const usePlayerStore = create<PlayerState>()(
       },
       addDebt: (amount) => {
         set(state => { if (state.player) state.player.debt = (state.player.debt ?? 0) + amount; });
+        debouncedUpdate();
+      },
+      incrementSpinsSinceBigWin: () => {
+        set(state => { if (state.player) state.player.spinsSinceBigWin += 1; });
+        debouncedUpdate();
+      },
+      resetSpinsSinceBigWin: () => {
+        set(state => { if (state.player) state.player.spinsSinceBigWin = 0; });
         debouncedUpdate();
       },
     };
