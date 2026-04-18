@@ -25,15 +25,6 @@
     --ring: 308 100% 50%;
     --radius: 0.5rem;
   }
-  .dark {
-    --background: 10 5% 8%;
-    --foreground: 200 10% 80%;
-  }
-}
-@layer base {
-  body {
-    @apply bg-ov-dark text-ov-foreground overflow-x-hidden;
-  }
 }
 @layer components {
   .glitch-text {
@@ -41,28 +32,13 @@
     color: hsl(var(--primary));
     text-shadow: 0 0 5px hsl(var(--primary) / 0.8), 0 0 10px hsl(var(--primary) / 0.6);
   }
-  .glitch-text::before,
-  .glitch-text::after {
+  .glitch-text::before, .glitch-text::after {
     content: attr(data-text);
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    overflow: hidden;
-    clip: rect(0, 900px, 0, 0);
+    top: 0; left: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; clip: rect(0, 900px, 0, 0);
   }
-  .glitch-text::before {
-    left: 2px;
-    text-shadow: -1px 0 #00f;
-    animation: glitch-anim-1 2s infinite linear alternate-reverse;
-  }
-  .glitch-text::after {
-    left: -2px;
-    text-shadow: -1px 0 #f0f, 1px 0 #0ff;
-    animation: glitch-anim-2 3s infinite linear alternate-reverse;
-  }
+  .glitch-text::before { left: 2px; text-shadow: -1px 0 #00f; animation: glitch-anim-1 2s infinite linear alternate-reverse; }
+  .glitch-text::after { left: -2px; text-shadow: -1px 0 #f0f, 1px 0 #0ff; animation: glitch-anim-2 3s infinite linear alternate-reverse; }
   .scanline {
     background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.5) 51%);
     background-size: 100% 4px;
@@ -71,27 +47,25 @@
   .vignette {
     background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
   }
-  /* Phase 30: Promise & Reality Effects */
+  /* Phase 31: The Illusion of Choice Effects */
   .coin-shimmer {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0) 45%,
-      rgba(255, 255, 255, 0.5) 50%,
-      rgba(255, 255, 255, 0) 55%,
-      rgba(255, 255, 255, 0) 100%
-    );
+    background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 55%, rgba(255,255,255,0) 100%);
     background-size: 200% 200%;
     animation: shimmer-move 3s infinite linear;
   }
   .melted-border {
-    clip-path: polygon(
-      0% 15%, 15% 0%, 85% 5%, 100% 20%, 95% 80%, 80% 100%, 20% 95%, 5% 75%, 10% 40%
-    );
+    clip-path: polygon(0% 20%, 15% 5%, 50% 0%, 85% 5%, 100% 30%, 95% 70%, 80% 95%, 50% 100%, 20% 95%, 5% 75%);
+  }
+  .warped-sigil {
+    filter: hue-rotate(90deg) invert(1) drop-shadow(0 0 10px rgba(220, 38, 38, 0.8));
+    animation: warp-pulse 2s infinite alternate;
+  }
+  .cracked-surface {
+    background-image: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.05) 0deg 10deg, transparent 10deg 20deg);
+    mask-image: radial-gradient(circle, black, transparent);
   }
   .reality-glitch {
     animation: reality-pulse 0.5s ease-in-out infinite alternate;
-    filter: contrast(1.5) saturate(0.5) brightness(0.8);
   }
   .shake-sm {
     animation: shake-tiny 0.2s ease-in-out infinite;
@@ -101,9 +75,13 @@
   0% { background-position: -200% -200%; }
   100% { background-position: 200% 200%; }
 }
+@keyframes warp-pulse {
+  0% { transform: scale(1) rotate(0deg) skew(0deg); filter: hue-rotate(90deg) brightness(1); }
+  100% { transform: scale(1.1) rotate(5deg) skew(5deg); filter: hue-rotate(180deg) brightness(1.5); }
+}
 @keyframes reality-pulse {
-  0% { filter: contrast(1.2) brightness(0.9); transform: scale(1); }
-  100% { filter: contrast(1.8) brightness(0.6) blur(1px); transform: scale(1.02); }
+  0% { filter: contrast(1.2) brightness(0.9); transform: scale(1); opacity: 0.8; }
+  100% { filter: contrast(2) brightness(0.6) blur(1px); transform: scale(1.05); opacity: 1; }
 }
 @keyframes shake-tiny {
   0%, 100% { transform: translate(0, 0); }
@@ -117,15 +95,9 @@
 }
 @keyframes glitch-anim-1 {
   0% { clip: rect(42px, 9999px, 44px, 0); }
-  5% { clip: rect(12px, 9999px, 60px, 0); }
-  10% { clip: rect(40px, 9999px, 42px, 0); }
   100% { clip: rect(50px, 9999px, 52px, 0); }
 }
 @keyframes glitch-anim-2 {
   0% { clip: rect(2px, 9999px, 98px, 0); }
   100% { clip: rect(90px, 9999px, 92px, 0); }
-}
-@keyframes flicker {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
 }
