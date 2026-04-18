@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,11 @@ import { shuffleDeck } from '@/lib/game-logic/blackjack';
 import { cn } from '@/lib/utils';
 type GameStage = 'betting' | 'playing' | 'finished';
 export function VulturesNestPage() {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
   const recordLoss = usePlayerStore((s) => s.recordLoss);
@@ -124,6 +129,7 @@ export function VulturesNestPage() {
   useEffect(() => {
     if (gameState?.currentPlayerId === 'opponent' && gameState.winner === null) {
       const timer = setTimeout(() => {
+        if (!mounted.current) return;
         setGameState(prev => {
           if (!prev) return null;
           let newState = Tonk.computerPlayerTurn(prev, 'opponent');

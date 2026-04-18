@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Coins, Info, Eye } from 'lucide-react';
+import { ArrowLeft, Coins, Eye } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,11 @@ function getCeeLoResult(dice: [number, number, number]): CeeLoResult {
   return { outcome: 'reroll', value: 0, message: 'REROLL...' };
 }
 export function DataDumpPage() {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
   const increaseCorruption = usePlayerStore((s) => s.increaseCorruption);
@@ -46,6 +51,7 @@ export function DataDumpPage() {
     setFeedback('PLAYER ROLLING...');
     increaseCorruption(2);
     setTimeout(() => {
+      if (!mounted.current) return;
       let pRoll = rollDice();
       let pRes = getCeeLoResult(pRoll);
       while (pRes.outcome === 'reroll') { pRoll = rollDice(); pRes = getCeeLoResult(pRoll); }
@@ -58,9 +64,9 @@ export function DataDumpPage() {
       } else {
         setFeedback(`${pRes.message}. HOUSE ROLLING...`);
         setTimeout(() => {
+          if (!mounted.current) return;
           let hRoll = rollDice();
           let hRes = getCeeLoResult(hRoll);
-          // House rigging based on Corruption
           const houseAggression = (player.corruption / 20);
           for(let i=0; i<houseAggression; i++) {
             if (hRes.outcome === 'reroll' || (hRes.outcome === 'point' && hRes.value < pRes.value)) {

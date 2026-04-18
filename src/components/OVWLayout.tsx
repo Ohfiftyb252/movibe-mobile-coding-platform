@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { usePlayerStore } from '@/stores/player-store';
 import { Toaster } from '@/components/ui/sonner';
@@ -17,24 +17,26 @@ function PlayerStats() {
   const player = usePlayerStore((s) => s.player);
   const isLoading = usePlayerStore((s) => s.isLoading);
   const error = usePlayerStore((s) => s.error);
-  const [prevLuck, setPrevLuck] = useState(50);
-  const [prevHeat, setPrevHeat] = useState(0);
+  const prevLuckRef = useRef(50);
+  const prevHeatRef = useRef(0);
   const [luckFlash, setLuckFlash] = useState(false);
   const [heatFlash, setHeatFlash] = useState(false);
   useEffect(() => {
     if (player) {
-      if (Math.abs((player.luck ?? 50) - prevLuck) > 5) {
+      const currentLuck = player.luck ?? 50;
+      const currentHeat = player.heat ?? 0;
+      if (Math.abs(currentLuck - prevLuckRef.current) > 5) {
         setLuckFlash(true);
         setTimeout(() => setLuckFlash(false), 1000);
       }
-      if (Math.abs((player.heat ?? 0) - prevHeat) > 10) {
+      if (Math.abs(currentHeat - prevHeatRef.current) > 10) {
         setHeatFlash(true);
         setTimeout(() => setHeatFlash(false), 1000);
       }
-      setPrevLuck(player.luck ?? 50);
-      setPrevHeat(player.heat ?? 0);
+      prevLuckRef.current = currentLuck;
+      prevHeatRef.current = currentHeat;
     }
-  }, [player?.luck, player?.heat]);
+  }, [player]);
   const roast = useMemo(() => DEBT_ROASTS[Math.floor(Math.random() * DEBT_ROASTS.length)], []);
   if (isLoading) return <div className="text-ov-gray animate-pulse text-xs tracking-widest font-bold">SYNCHRONIZING...</div>;
   if (error || !player) return <div className="text-red-500 text-xs font-bold uppercase animate-pulse">SYSTEM_FAULT: NO_DATA</div>;
@@ -104,7 +106,7 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 pointer-events-none z-[101] vignette opacity-50"></div>
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-5 pointer-events-none"></div>
       <header className="fixed top-0 left-0 right-0 z-[60] p-4 backdrop-blur-2xl bg-ov-dark/80 border-b border-ov-primary/20">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <Link
             to="/"
             className="font-display text-2xl md:text-3xl uppercase glitch-text hover:scale-105 transition-transform inline-block"
@@ -115,8 +117,8 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
           <PlayerStats />
         </div>
       </header>
-      <main className="max-w-7xl mx-auto">
-        <div className="pt-28 pb-20 md:pt-36 lg:pt-40 min-h-screen">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="py-8 md:py-10 lg:py-12 pt-28 md:pt-36 lg:pt-40 min-h-screen">
           {children}
         </div>
       </main>
@@ -128,9 +130,9 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
         richColors
         closeButton
         toastOptions={{
-          style: { 
-            zIndex: 9999, 
-            background: 'rgba(16, 18, 20, 0.95)', 
+          style: {
+            zIndex: 9999,
+            background: 'rgba(16, 18, 20, 0.95)',
             border: '1px solid rgba(255, 0, 229, 0.3)',
             backdropFilter: 'blur(12px)',
             fontFamily: 'VT323, monospace',

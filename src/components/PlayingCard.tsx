@@ -9,16 +9,20 @@ interface PlayingCardProps {
   onClick?: (card: CardType) => void;
   isSelected?: boolean;
 }
-export function PlayingCard({ card, hidden = false, isFlipped = false, delay = 0, onClick, isSelected = false }: PlayingCardProps) {
+export function PlayingCard({ card, hidden = false, delay = 0, onClick, isSelected = false }: PlayingCardProps) {
   const isRed = card?.suit === '♥' || card?.suit === '♦';
   const cardVariants = {
-    hidden: { y: -100, opacity: 0, rotateY: 180 },
-    visible: {
+    hidden: { 
+      y: -100, 
+      opacity: 0, 
+      rotateY: 180 
+    },
+    visible: (isHidden: boolean) => ({
       y: 0,
       opacity: 1,
-      rotateY: isFlipped ? 180 : 0,
+      rotateY: isHidden ? 180 : 0,
       transition: { duration: 0.5, delay }
-    },
+    }),
   };
   const handleClick = () => {
     if (onClick && card && !hidden) {
@@ -31,13 +35,13 @@ export function PlayingCard({ card, hidden = false, isFlipped = false, delay = 0
       variants={cardVariants}
       initial="hidden"
       animate="visible"
+      custom={hidden}
       onClick={handleClick}
       whileHover={{ scale: hidden ? 1 : 1.05, y: isSelected ? -20 : -10 }}
     >
       <div className={cn(
         "relative w-full h-full preserve-3d transition-transform duration-500",
-        { 'rotate-y-180': hidden },
-        isSelected && "ring-4 ring-ov-primary shadow-lg shadow-ov-primary/50"
+        isSelected && "ring-4 ring-ov-primary shadow-lg shadow-ov-primary/50 rounded-lg"
       )}>
         {/* Card Front */}
         <div className="absolute w-full h-full backface-hidden bg-white border-2 border-gray-300 rounded-lg shadow-lg flex flex-col justify-between p-2">

@@ -1,11 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Coins, TrendingDown, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Coins, ShieldAlert } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { PlayingCard } from '@/components/PlayingCard';
@@ -13,6 +12,11 @@ import { cn } from '@/lib/utils';
 import { createDeck, shuffleDeck, getHandValue, determineWinner, type Deck, type Hand, type GameResult } from '@/lib/game-logic/blackjack';
 type GameState = 'betting' | 'playing' | 'dealer_turn' | 'finished';
 export function CryptoCarnivalPage() {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
   const recordLoss = usePlayerStore((s) => s.recordLoss);
@@ -49,6 +53,7 @@ export function CryptoCarnivalPage() {
     }
   };
   const endHand = (result: GameResult, pHand: Hand, dHand: Hand) => {
+    if (!mounted.current) return;
     setGameState('finished');
     const bet = Number(betAmount);
     if (!player) return;
@@ -107,6 +112,7 @@ export function CryptoCarnivalPage() {
     let cDealer = [...dealerHand];
     let cDeck = [...deck];
     const play = () => {
+      if (!mounted.current) return;
       if (getHandValue(cDealer) < 17) {
         cDealer.push(cDeck.pop()!);
         setDealerHand([...cDealer]);
@@ -158,10 +164,10 @@ export function CryptoCarnivalPage() {
                   <label className="text-[10px] uppercase text-ov-gray">Stake Amount</label>
                   <div className="relative">
                     <Coins className="absolute left-3 top-3 w-4 h-4 text-ov-green" />
-                    <input 
-                      type="number" 
-                      value={betAmount} 
-                      onChange={(e) => setBetAmount(Number(e.target.value))} 
+                    <input
+                      type="number"
+                      value={betAmount}
+                      onChange={(e) => setBetAmount(Number(e.target.value))}
                       className="w-full bg-ov-dark/50 border border-ov-primary/20 rounded-md p-2 pl-10 text-ov-foreground outline-none focus:border-ov-primary transition-colors"
                     />
                   </div>

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Coins, Skull, Flame, TrendingUp } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
@@ -28,6 +28,11 @@ const Coin = ({ isFlipping, result }: { isFlipping: boolean; result: 'heads' | '
   );
 };
 export function BackAlleyPage() {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
   const recordLoss = usePlayerStore((s) => s.recordLoss);
@@ -49,7 +54,7 @@ export function BackAlleyPage() {
     increaseCorruption(1);
     addHeat(isFixed ? 25 : 5);
     setTimeout(() => {
-      // Rigged logic: House has 55% edge normally, 85% edge on 'Fixed' bets
+      if (!mounted.current) return;
       const winChance = isFixed ? 0.15 : 0.45;
       const playerWins = Math.random() < winChance;
       const flipResult = playerWins ? choice : (choice === 'heads' ? 'tails' : 'heads');
@@ -68,7 +73,7 @@ export function BackAlleyPage() {
         setOvCoin(player.ovCoin - bet);
         recordLoss();
       }
-    }, 1500 - ( (player?.corruption ?? 0) * 10 )); // Faster flips as corruption rises
+    }, 1500 - ((player?.corruption ?? 0) * 10));
   };
   return (
     <OVWLayout>
@@ -96,9 +101,9 @@ export function BackAlleyPage() {
           </div>
           {player && player.heat > 50 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <Button 
-                variant="destructive" 
-                size="lg" 
+              <Button
+                variant="destructive"
+                size="lg"
                 className="w-full h-16 border-2 border-ov-primary/50 animate-pulse flex flex-col"
                 onClick={() => handleFlip(Math.random() > 0.5 ? 'heads' : 'tails', true)}
                 disabled={isFlipping}
@@ -111,7 +116,9 @@ export function BackAlleyPage() {
         </div>
       </Card>
       <div className="mt-12 text-center">
-        <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase"><Link to="/">Retreat</Link></Button>
+        <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase">
+          <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> Retreat</Link>
+        </Button>
       </div>
     </OVWLayout>
   );
