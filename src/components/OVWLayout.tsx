@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { usePlayerStore } from '@/stores/player-store';
 import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Coins, Package, Flame, Clover, Skull, AlertCircle } from 'lucide-react';
+import { Coins, Package, Flame, Clover, Skull, AlertCircle, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TiltedOverlay } from '@/components/TiltedOverlay';
 const DEBT_ROASTS = [
   "The House owns your soul. And your left shoe.",
   "Your credit score is currently 'Nuclear Winter'.",
@@ -17,12 +18,14 @@ function PlayerStats() {
   const player = usePlayerStore((s) => s.player);
   const isLoading = usePlayerStore((s) => s.isLoading);
   const error = usePlayerStore((s) => s.error);
+  const smashTerminal = usePlayerStore((s) => s.smashTerminal);
   const prevLuckRef = useRef(50);
   const prevHeatRef = useRef(0);
   const prevDebtRef = useRef(0);
   const [luckFlash, setLuckFlash] = useState(false);
   const [heatFlash, setHeatFlash] = useState(false);
   const [debtFlash, setDebtFlash] = useState(false);
+  const [currentRoast, setCurrentRoast] = useState(DEBT_ROASTS[0]);
   useEffect(() => {
     if (player) {
       const currentLuck = player.luck ?? 50;
@@ -38,6 +41,7 @@ function PlayerStats() {
       }
       if (currentDebt > prevDebtRef.current) {
         setDebtFlash(true);
+        setCurrentRoast(DEBT_ROASTS[Math.floor(Math.random() * DEBT_ROASTS.length)]);
         setTimeout(() => setDebtFlash(false), 2000);
       }
       prevLuckRef.current = currentLuck;
@@ -45,14 +49,24 @@ function PlayerStats() {
       prevDebtRef.current = currentDebt;
     }
   }, [player]);
-  const roast = useMemo(() => DEBT_ROASTS[Math.floor(Math.random() * DEBT_ROASTS.length)], [debtFlash]);
   if (isLoading) return <div className="text-ov-gray animate-pulse text-xs tracking-widest font-bold">SYNCHRONIZING...</div>;
   if (error || !player) return <div className="text-red-500 text-xs font-bold uppercase animate-pulse">SYSTEM_FAULT: NO_DATA</div>;
   const debt = player.debt ?? 0;
   const corruption = player.corruption ?? 0;
+  const isTilted = (player.consecutiveLosses ?? 0) >= 5;
   return (
     <div className="flex flex-col gap-2 items-end">
       <div className="flex items-center gap-3">
+        {isTilted && (
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={smashTerminal}
+            className="h-8 animate-glitch border-2 border-white/50 px-2 py-0 text-[10px] font-bold"
+          >
+            <Zap className="w-3 h-3 mr-1" /> SMASH TERMINAL
+          </Button>
+        )}
         <div className="hidden sm:flex items-center gap-4 px-4 py-2 bg-black/80 border border-ov-primary/20 rounded-xl text-[10px] uppercase tracking-tighter">
           <div className={cn(
             "flex items-center gap-1.5 transition-all duration-300",
@@ -96,7 +110,7 @@ function PlayerStats() {
             <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             <div className="text-xs">
               <p className="font-bold text-red-400 uppercase tracking-widest text-[10px]">RECOVERY_ALERT</p>
-              <p className="text-red-100 italic mt-1 font-sans leading-tight">"{roast}"</p>
+              <p className="text-red-100 italic mt-1 font-sans leading-tight">"{currentRoast}"</p>
             </div>
           </div>
         </div>
@@ -106,7 +120,10 @@ function PlayerStats() {
 }
 export function OVWLayout({ children }: { children: React.ReactNode }) {
   const loadPlayer = usePlayerStore((s) => s.loadPlayer);
-  const corruption = usePlayerStore((s) => s.player?.corruption ?? 0);
+  const player = usePlayerStore((s) => s.player);
+  const corruption = player?.corruption ?? 0;
+  const losses = player?.consecutiveLosses ?? 0;
+  const isTilted = losses >= 5;
   useEffect(() => {
     loadPlayer('PLAYER_ONE');
   }, [loadPlayer]);
@@ -119,6 +136,7 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 pointer-events-none z-[100] scanline opacity-[0.03]"></div>
       <div className="fixed inset-0 pointer-events-none z-[101] vignette opacity-50"></div>
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-5 pointer-events-none"></div>
+      {isTilted && <TiltedOverlay intensity={losses} />}
       <header className={cn(
         "fixed top-0 left-0 right-0 z-[60] p-4 backdrop-blur-2xl bg-ov-dark/80 border-b border-ov-primary/20 transition-all duration-1000",
         corruption > 85 && "border-ov-primary shadow-[0_0_30px_rgba(255,0,229,0.2)]"
@@ -134,7 +152,10 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
           <PlayerStats />
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className={cn(
+        "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-500",
+        isTilted && "filter sepia-[0.3] hue-rotate-[340deg] saturate-[1.5]"
+      )}>
         <div className="py-8 md:py-10 lg:py-12 pt-28 md:pt-36 lg:pt-40 min-h-screen">
           {children}
         </div>

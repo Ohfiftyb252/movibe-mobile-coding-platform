@@ -5,7 +5,7 @@ import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Coins, Bot, Gem, Skull, Hammer, Zap, TrendingUp, AlertTriangle, ExternalLink, ArrowLeft } from 'lucide-react';
+import { Coins, Bot, Gem, Skull, Zap, TrendingUp, ExternalLink, ArrowLeft } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -37,13 +37,12 @@ export function TheGlitchPage() {
   const increaseCorruption = usePlayerStore(s => s.increaseCorruption);
   const addHeat = usePlayerStore(s => s.addHeat);
   const adjustLuck = usePlayerStore(s => s.adjustLuck);
-  const addDebt = usePlayerStore(s => s.addDebt);
   const incrementSpinsSinceBigWin = usePlayerStore(s => s.incrementSpinsSinceBigWin);
   const resetSpinsSinceBigWin = usePlayerStore(s => s.resetSpinsSinceBigWin);
-  const currentOvCoin = usePlayerStore(s => s.player?.ovCoin ?? 0);
-  const currentLuck = usePlayerStore(s => s.player?.luck ?? 50);
-  const consecutiveLosses = usePlayerStore(s => s.player?.consecutiveLosses ?? 0);
-  const spinsSinceBigWin = usePlayerStore(s => s.player?.spinsSinceBigWin ?? 99);
+  const currentOvCoin = player?.ovCoin ?? 0;
+  const currentLuck = player?.luck ?? 50;
+  const consecutiveLosses = player?.consecutiveLosses ?? 0;
+  const spinsSinceBigWin = player?.spinsSinceBigWin ?? 99;
   const [betAmount, setBetAmount] = useState<number | ''>(10);
   const [isSpinning, setIsSpinning] = useState(false);
   const [isFakeOut, setIsFakeOut] = useState(false);
@@ -62,7 +61,7 @@ export function TheGlitchPage() {
         return () => clearTimeout(timer);
       }
     }
-  }, [currentLuck, isSpinning]);
+  }, [currentLuck, isSpinning, showTrap]);
   const handleSpin = () => {
     if (isSpinning || !player) return;
     const bet = Number(betAmount);
@@ -79,22 +78,19 @@ export function TheGlitchPage() {
     incrementSpinsSinceBigWin();
     setTimeout(() => {
       if (!mounted.current) return;
-      const luckFactor = (currentLuck - 50) / 50; // -1 to 1
-      // Base Matrix (Luck=0)
+      const luckFactor = (currentLuck - 50) / 50; 
       let pSmallWin = 0.42;
       let pBigWin = 0.06;
       let pNearMiss = 0.38;
       let pGlitch = 0.14;
-      // Luck Modifiers
       if (luckFactor > 0) {
-        pBigWin += (luckFactor * 0.1); // +2% per +1 luck (approx)
+        pBigWin += (luckFactor * 0.1);
         pGlitch -= (luckFactor * 0.1);
         if (currentLuck > 80) pNearMiss += 0.1;
       } else if (luckFactor < 0) {
         pGlitch += Math.abs(luckFactor * 0.2);
         pBigWin -= Math.abs(luckFactor * 0.04);
       }
-      // Hidden Rule: Post-Win Regret
       if (spinsSinceBigWin < 2) {
         pNearMiss += pBigWin;
         pGlitch += 0.05;
@@ -112,7 +108,7 @@ export function TheGlitchPage() {
         Math.floor(Math.random() * SYMBOLS.length),
       ];
       if (outcome === 'big') {
-        const sym = 3; // 7s
+        const sym = 3; 
         newReels = [sym, sym, sym];
       } else if (outcome === 'small') {
         const sym = [0, 1, 4][Math.floor(Math.random() * 3)];
@@ -121,7 +117,7 @@ export function TheGlitchPage() {
         const sym = Math.floor(Math.random() * SYMBOLS.length);
         newReels = [sym, sym, (sym + 1) % SYMBOLS.length];
       } else if (outcome === 'glitch') {
-        newReels = [3, 3, 3]; // Fake Jackpot initially
+        newReels = [3, 3, 3];
       }
       setReels(newReels);
       if (outcome === 'glitch') {
@@ -129,7 +125,7 @@ export function TheGlitchPage() {
         setFeedback("JACKPOT!!! UNBELIEVABLE!!");
         setTimeout(() => {
           if (!mounted.current) return;
-          setReels([3, 3, 2]); // Snap to Skull
+          setReels([3, 3, 2]);
           setGameResult('loss');
           setIsFakeOut(false);
           setFeedback("FATAL: TRANSACTION_CORRUPT");
@@ -140,7 +136,6 @@ export function TheGlitchPage() {
           toast.error("DOPAMINE CRASH", { description: "The house always takes what it 'accidentally' gave." });
         }, 1500);
       } else {
-        const stopDelay = isTension ? 2500 : 1200;
         setTimeout(() => {
           if (!mounted.current) return;
           setIsSpinning(false);
@@ -163,7 +158,7 @@ export function TheGlitchPage() {
             setFeedback('EXPECTED OUTCOME.');
             recordLoss();
           }
-        }, 500);
+        }, isTension ? 1500 : 800);
       }
     }, 1200);
   };
@@ -176,115 +171,101 @@ export function TheGlitchPage() {
   };
   return (
     <OVWLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-8 md:py-10 lg:py-12">
-          <div className="text-center animate-fade-in max-w-2xl mx-auto mb-12">
-            <h1 className="text-5xl md:text-7xl font-display font-bold uppercase glitch-text" data-text="The Glitch">The Glitch</h1>
-            <p className="mt-4 text-lg text-ov-gray uppercase tracking-widest italic">Our algorithms are fair. Your luck is just substandard.</p>
-          </div>
-          <div className="grid lg:grid-cols-3 gap-8 items-start relative">
-            <PsychologicalWhispers trigger={consecutiveLosses} />
-            <div className="lg:col-span-2 space-y-8">
-              <Card className={cn(
-                "bg-black/80 border-2 border-ov-primary/20 transition-all duration-700 relative overflow-hidden",
-                isFakeOut && "border-ov-primary shadow-[0_0_100px_rgba(255,0,229,0.4)] scale-[1.02]",
-                isTension && "border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.2)]"
-              )}>
-                <CardContent className="p-8 md:p-12 flex flex-col items-center gap-12 relative z-10">
-                  <div className="flex justify-center items-center gap-4 md:gap-8 p-8 bg-ov-dark/80 border-4 border-ov-primary/10 rounded-3xl backdrop-blur-xl relative">
-                    <SlotReel symbols={SYMBOLS} finalIndex={reels[0]} isSpinning={isSpinning} delay={0} />
-                    <SlotReel symbols={SYMBOLS} finalIndex={reels[1]} isSpinning={isSpinning} delay={0.2} />
-                    <SlotReel symbols={SYMBOLS} finalIndex={reels[2]} isSpinning={isSpinning} delay={0.4} tension={isTension} isGlitching={isFakeOut} />
-                    <AnimatePresence>
-                      {showTrap && (
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0 }}
-                          className="absolute -right-4 top-0 z-50"
-                        >
-                          <Button 
-                            onClick={handleTrap}
-                            className="rounded-full w-16 h-16 bg-ov-green border-4 border-black text-black hover:scale-110 shadow-[0_0_20px_rgba(0,255,156,0.8)]"
-                          >
-                            <ExternalLink />
-                          </Button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                  <div className="h-20 flex flex-col items-center justify-center">
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={feedback}
-                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className={cn(
-                          "text-3xl md:text-5xl font-bold font-display uppercase text-center tracking-tighter",
-                          gameResult === 'win' && 'text-ov-green drop-shadow-[0_0_10px_rgba(0,255,156,0.5)]',
-                          gameResult === 'loss' && 'text-red-500',
-                          gameResult === 'near-miss' && 'text-yellow-500',
-                          isFakeOut && 'animate-glitch text-ov-primary'
-                        )}
+      <div className="text-center animate-fade-in max-w-2xl mx-auto mb-12">
+        <h1 className="text-5xl md:text-7xl font-display font-bold uppercase glitch-text" data-text="The Glitch">The Glitch</h1>
+        <p className="mt-4 text-lg text-ov-gray uppercase tracking-widest italic">Our algorithms are fair. Your luck is just substandard.</p>
+      </div>
+      <div className="grid lg:grid-cols-3 gap-8 items-start relative">
+        <PsychologicalWhispers trigger={consecutiveLosses} />
+        <div className="lg:col-span-2 space-y-8">
+          <Card className={cn(
+            "bg-black/80 border-2 border-ov-primary/20 transition-all duration-700 relative overflow-hidden",
+            isFakeOut && "border-ov-primary shadow-[0_0_100px_rgba(255,0,229,0.4)] scale-[1.02]",
+            isTension && "border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.2)]"
+          )}>
+            <CardContent className="p-8 md:p-12 flex flex-col items-center gap-12 relative z-10">
+              <div className="flex justify-center items-center gap-4 md:gap-8 p-8 bg-ov-dark/80 border-4 border-ov-primary/10 rounded-3xl backdrop-blur-xl relative">
+                <SlotReel symbols={SYMBOLS} finalIndex={reels[0]} isSpinning={isSpinning} delay={0} />
+                <SlotReel symbols={SYMBOLS} finalIndex={reels[1]} isSpinning={isSpinning} delay={0.2} />
+                <SlotReel symbols={SYMBOLS} finalIndex={reels[2]} isSpinning={isSpinning} delay={0.4} tension={isTension} isGlitching={isFakeOut} />
+                <AnimatePresence>
+                  {showTrap && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0 }}
+                      className="absolute -right-4 top-0 z-50"
+                    >
+                      <Button 
+                        onClick={handleTrap}
+                        className="rounded-full w-16 h-16 bg-ov-green border-4 border-black text-black hover:scale-110 shadow-[0_0_20px_rgba(0,255,156,0.8)]"
                       >
-                        {feedback}
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <Card className="bg-black/60 border-ov-primary/10 backdrop-blur-md lg:sticky lg:top-32">
-              <CardHeader>
-                <CardTitle className="text-sm uppercase tracking-[0.3em] text-ov-primary flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" /> Probabilistic Engine
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-end">
-                    <label className="text-[10px] uppercase text-ov-gray tracking-widest font-bold">Wager Amount</label>
-                    <span className="text-[10px] text-ov-primary font-mono">MAX: {currentOvCoin}</span>
-                  </div>
-                  <div className="relative group">
-                    <Coins className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-ov-green" />
-                    <Input
-                      type="number"
-                      value={betAmount}
-                      onChange={(e) => setBetAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={isSpinning}
-                      className="pl-14 text-2xl h-16 bg-ov-dark/50 border-ov-primary/20 focus:border-ov-primary transition-all text-ov-green font-mono"
-                    />
-                  </div>
-                  <Button
-                    size="lg"
-                    onClick={handleSpin}
-                    disabled={isSpinning || !betAmount}
-                    className="w-full h-20 text-2xl font-display uppercase tracking-[0.2em] group relative overflow-hidden"
+                        <ExternalLink />
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              <div className="h-20 flex flex-col items-center justify-center">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={feedback}
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className={cn(
+                      "text-3xl md:text-5xl font-bold font-display uppercase text-center tracking-tighter",
+                      gameResult === 'win' && 'text-ov-green drop-shadow-[0_0_10px_rgba(0,255,156,0.5)]',
+                      gameResult === 'loss' && 'text-red-500',
+                      gameResult === 'near-miss' && 'text-yellow-500',
+                      isFakeOut && 'animate-glitch text-ov-primary'
+                    )}
                   >
-                    <Zap className={cn("absolute left-6 w-6 h-6 opacity-20 group-hover:opacity-100 transition-opacity", isSpinning && "animate-pulse")} />
-                    {isSpinning ? 'CALCULATING...' : 'EXECUTE PULL'}
-                  </Button>
-                </div>
-                <div className="pt-6 border-t border-ov-primary/5 space-y-4">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-ov-gray uppercase font-bold tracking-tighter">Current Luck Variance</span>
-                    <span className={cn("font-bold font-mono", currentLuck > 70 ? "text-ov-green" : "text-red-400")}>{currentLuck}%</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-ov-gray uppercase font-bold tracking-tighter">Big Win Regret Matrix</span>
-                    <span className="text-ov-primary font-bold font-mono">{spinsSinceBigWin < 2 ? "ACTIVE" : "STABLE"}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="mt-16 text-center">
-            <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase tracking-[0.5em] text-xs">
-              <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> TERMINATE_SIMULATION</Link>
-            </Button>
-          </div>
+                    {feedback}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+        <Card className="bg-black/60 border-ov-primary/10 backdrop-blur-md lg:sticky lg:top-32">
+          <CardHeader>
+            <CardTitle className="text-sm uppercase tracking-[0.3em] text-ov-primary flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" /> Probabilistic Engine
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="space-y-4">
+              <div className="flex justify-between items-end text-[10px] uppercase font-bold">
+                <span className="text-ov-gray">Wager</span>
+                <span className="text-ov-primary">{currentOvCoin.toLocaleString()}</span>
+              </div>
+              <div className="relative group">
+                <Coins className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-ov-green" />
+                <Input
+                  type="number"
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                  disabled={isSpinning}
+                  className="pl-14 text-2xl h-16 bg-ov-dark/50 border-ov-primary/20 focus:border-ov-primary transition-all text-ov-green font-mono"
+                />
+              </div>
+              <Button
+                size="lg"
+                onClick={handleSpin}
+                disabled={isSpinning || !betAmount}
+                className="w-full h-20 text-2xl font-display uppercase tracking-[0.2em] group relative overflow-hidden"
+              >
+                <Zap className={cn("absolute left-6 w-6 h-6 opacity-20 group-hover:opacity-100 transition-opacity", isSpinning && "animate-pulse")} />
+                {isSpinning ? 'CALCULATING...' : 'EXECUTE PULL'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="mt-16 text-center">
+        <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase tracking-[0.5em] text-xs">
+          <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> TERMINATE_SIMULATION</Link>
+        </Button>
       </div>
     </OVWLayout>
   );

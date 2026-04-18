@@ -25,7 +25,8 @@ export class PlayerEntity extends IndexedEntity<Player> {
     debt: 0,
     heat: 0,
     luck: 50,
-    corruption: 0
+    corruption: 0,
+    spinsSinceBigWin: 99
   };
   static seedData = [MOCK_PLAYER];
 }

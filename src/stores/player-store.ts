@@ -45,6 +45,7 @@ type PlayerState = {
   addDebt: (amount: number) => void;
   incrementSpinsSinceBigWin: () => void;
   resetSpinsSinceBigWin: () => void;
+  smashTerminal: () => void;
 };
 export const usePlayerStore = create<PlayerState>()(
   immer((set, get) => {
@@ -114,17 +115,17 @@ export const usePlayerStore = create<PlayerState>()(
         const player = get().player;
         if (!player) return;
         if (amount < 0) {
-            toast.error("SYSTEM DEFICIT", {
-                description: "You've gone past zero. The Vultures are calculating your organ market value.",
-                duration: 5000,
-            });
-            set(state => {
-                if (state.player) {
-                    state.player.debt += Math.abs(amount);
-                    state.player.ovCoin = 0;
-                }
-            });
-            debouncedUpdate();
+          toast.error("SYSTEM DEFICIT", {
+            description: "You've gone past zero. The Vultures are calculating your organ market value.",
+            duration: 5000,
+          });
+          set(state => {
+            if (state.player) {
+              state.player.debt += Math.abs(amount);
+              state.player.ovCoin = 0;
+            }
+          });
+          debouncedUpdate();
         } else if (amount === 0 && player.ovCoin > 0) {
           toast.info("PITY PARTY!", {
             description: "You're broke. Here's a hat and 500 O.V. Coin. That's more debt for you.",
@@ -181,6 +182,34 @@ export const usePlayerStore = create<PlayerState>()(
         set(state => { if (state.player) state.player.spinsSinceBigWin = 0; });
         debouncedUpdate();
       },
+      smashTerminal: () => {
+        const p = get().player;
+        if (!p) return;
+        const reward = Math.floor(Math.random() * 41) + 10; // 10-50
+        const lockRisk = Math.random() < 0.1;
+        if (lockRisk) {
+          toast.error("SECURITY LOCKOUT", {
+            description: "You smashed too hard. Biometrics wiped. Wallet drained by security fees.",
+          });
+          set(state => {
+            if (state.player) {
+              state.player.ovCoin = 0;
+              state.player.heat += 50;
+            }
+          });
+        } else {
+          toast.success("CATHARSIS", {
+            description: `You kicked the terminal. ${reward} O.V.C fell out. The guards are watching.`,
+          });
+          set(state => {
+            if (state.player) {
+              state.player.ovCoin += reward;
+              state.player.heat += 15;
+            }
+          });
+        }
+        debouncedUpdate();
+      }
     };
   })
 );

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Coins, Heart, Shield } from 'lucide-react';
+import { ArrowLeft, Coins, Heart, Shield, Zap } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { Zombie } from '@/components/Zombie';
@@ -19,16 +19,19 @@ const INITIAL_LIVES = 3;
 export function ZombieOutbreakPage() {
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
+  const smashTerminal = usePlayerStore((s) => s.smashTerminal);
   const [gameState, setGameState] = useState<GameState>('idle');
   const [zombies, setZombies] = useState<ZombieInfo[]>([]);
   const [score, setScore] = useState(0);
   const [wave, setWave] = useState(1);
   const [lives, setLives] = useState(INITIAL_LIVES);
+  const losses = player?.consecutiveLosses ?? 0;
+  const isTilted = losses >= 5;
   const createZombie = useCallback((id: number, currentWave: number): ZombieInfo => {
     return {
       id,
       initialX: Math.random() * (window.innerWidth * 0.8) + (window.innerWidth * 0.05),
-      duration: Math.max(2, 8 - (currentWave * 0.4) - (Math.random() * 2)), 
+      duration: Math.max(1.5, 8 - (currentWave * 0.4) - (Math.random() * 2)),
     };
   }, []);
   const startGame = () => {
@@ -51,34 +54,29 @@ export function ZombieOutbreakPage() {
     setZombies(prev => prev.filter(z => z.id !== id));
     setLives(prev => prev - 1);
   }, []);
-  // Effect to spawn new wave when 'wave' counter increases
   useEffect(() => {
     if (gameState !== 'playing') return;
     const zombiesToSpawn = wave * 2 + 3;
-    const newHorde = Array.from({ length: zombiesToSpawn }, (_, i) => 
+    const newHorde = Array.from({ length: zombiesToSpawn }, (_, i) =>
       createZombie(Date.now() + i + (wave * 1000), wave)
     );
     setZombies(newHorde);
     toast.info(`WAVE ${wave} STARTING...`);
   }, [gameState, wave, createZombie]);
-  // Effect to monitor wave completion
   useEffect(() => {
     if (gameState === 'playing' && zombies.length === 0) {
-      // Small delay before next wave for pacing
       const timer = setTimeout(() => {
         setWave(prev => prev + 1);
       }, 1000);
       return () => clearTimeout(timer);
     }
   }, [zombies.length, gameState]);
-  // Game Over
   useEffect(() => {
     if (lives <= 0 && gameState === 'playing') {
       setGameState('finished');
       const winnings = score * 5;
       if (winnings > 0 && player) {
         toast.success(`DEFEATED. Killed ${score} zombies. Earned ${winnings} O.V. Coin.`);
-        // Payout logic
         setOvCoin(player.ovCoin + winnings);
       } else {
         toast.error(`THE HORDE HAS CONSUMED YOU.`);
@@ -98,10 +96,10 @@ export function ZombieOutbreakPage() {
       </div>
       <div id="game-area" className="fixed inset-0 w-screen h-screen overflow-hidden bg-gray-900/40 cursor-crosshair">
         {zombies.map(zombie => (
-          <Zombie 
-            key={zombie.id} 
-            {...zombie} 
-            onShoot={handleShoot} 
+          <Zombie
+            key={zombie.id}
+            {...zombie}
+            onShoot={handleShoot}
             onEscape={handleEscape}
           />
         ))}
@@ -152,7 +150,14 @@ export function ZombieOutbreakPage() {
                    <p className="text-sm uppercase text-ov-gray">Payout Received</p>
                    <p className="text-2xl font-bold text-ov-green">{(score * 5).toLocaleString()} O.V.C</p>
                 </div>
-                <Button onClick={startGame} className="w-full h-12 uppercase bg-red-600 hover:bg-red-700">Respawn (100 O.V.C)</Button>
+                <div className="grid gap-2">
+                  <Button onClick={startGame} className="w-full h-12 uppercase bg-red-600 hover:bg-red-700">Respawn (100 O.V.C)</Button>
+                  {isTilted && (
+                    <Button onClick={smashTerminal} variant="outline" className="w-full border-ov-primary text-ov-primary hover:bg-ov-primary hover:text-black">
+                      <Zap className="w-4 h-4 mr-2" /> Rage Rebirth
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </motion.div>

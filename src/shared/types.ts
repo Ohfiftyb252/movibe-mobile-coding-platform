@@ -16,10 +16,4 @@ export interface Player {
   luck: number;
   corruption: number;
   spinsSinceBigWin?: number;
-  lastLoginAt?: number;
-  loginStreak?: number;
-  title?: string;
-  lastBonusClaimedAt?: number;
-  lastNearMissAt?: number;
-  totalRegrets?: number;
 }
