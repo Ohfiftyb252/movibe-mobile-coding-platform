@@ -52,6 +52,7 @@ export function TheGlitchPage() {
   const [gameResult, setGameResult] = useState<'win' | 'loss' | 'near-miss' | null>(null);
   const [showTrap, setShowTrap] = useState(false);
   const [lastTrapResult, setLastTrapResult] = useState<boolean | null>(null);
+  // Derived state for the UI components
   const isTension = useMemo(() => {
     return isSpinning && reels[0] === reels[1] && reels[0] !== 2;
   }, [isSpinning, reels]);
@@ -69,7 +70,6 @@ export function TheGlitchPage() {
     const bet = Number(betAmount);
     if (!bet || bet <= 0) { toast.error("INVALID INPUT"); return; }
     if (bet > currentOvCoin) { toast.error("INSUFFICIENT LIQUIDITY"); return; }
-    // If they got a trap bonus and then lost, that's a prime regret event
     const hadTrapBonus = lastTrapResult === true;
     setIsSpinning(true);
     setIsFakeOut(false);
@@ -122,6 +122,8 @@ export function TheGlitchPage() {
       } else if (outcome === 'glitch') {
         newReels = [3, 3, 3];
       }
+      // Calculate tension locally to determine timeout
+      const targetIsTension = newReels[0] === newReels[1] && newReels[0] !== 2;
       setReels(newReels);
       if (outcome === 'glitch') {
         setIsFakeOut(true);
@@ -136,10 +138,12 @@ export function TheGlitchPage() {
           recordLoss();
           adjustLuck(-2);
           addHeat(20);
-          recordRegret(); // Getting glitch-faked is a huge regret
+          recordRegret();
           toast.error("DOPAMINE CRASH", { description: "The house always takes what it 'accidentally' gave." });
         }, 1500);
       } else {
+        // Logic Timeout synchronized with SlotReel's 'stop' transition duration
+        const stopTimeout = targetIsTension ? 1500 : 800;
         setTimeout(() => {
           if (!mounted.current) return;
           setIsSpinning(false);
@@ -158,16 +162,16 @@ export function TheGlitchPage() {
             setFeedback('SO CLOSE. TRY AGAIN?');
             adjustLuck(1);
             recordLoss();
-            recordRegret(); // Near miss counts as regret
+            recordRegret();
             setLastTrapResult(null);
           } else {
             setGameResult('loss');
             setFeedback('EXPECTED OUTCOME.');
             recordLoss();
-            if (hadTrapBonus) recordRegret(); // Losing after a bonus is painful
+            if (hadTrapBonus) recordRegret();
             setLastTrapResult(null);
           }
-        }, isTension ? 1500 : 800);
+        }, stopTimeout);
       }
     }, 1200);
   };
@@ -200,14 +204,14 @@ export function TheGlitchPage() {
                 <SlotReel symbols={SYMBOLS} finalIndex={reels[2]} isSpinning={isSpinning} delay={0.4} tension={isTension} isGlitching={isFakeOut} />
                 <AnimatePresence>
                   {showTrap && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0 }} 
+                      animate={{ opacity: 1, scale: 1 }} 
                       exit={{ opacity: 0, scale: 0 }}
                       className="absolute -right-4 top-0 z-50"
                     >
-                      <Button
-                        onClick={handleTrap}
+                      <Button 
+                        onClick={handleTrap} 
                         className="rounded-full w-16 h-16 bg-ov-green border-4 border-black text-black hover:scale-110 shadow-[0_0_20px_rgba(0,255,156,0.8)]"
                       >
                         <ExternalLink />

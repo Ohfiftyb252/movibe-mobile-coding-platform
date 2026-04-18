@@ -5,7 +5,7 @@ import { OVWLayout } from '@/components/OVWLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Users, Terminal, Megaphone, TrendingDown, Eye, AlertCircle, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Users, Terminal, Megaphone, TrendingDown, Eye, AlertCircle } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { cn } from '@/lib/utils';
 const CATEGORIES = {
@@ -37,14 +37,19 @@ const BILLBOARDS = [
 ];
 export function GlitchSquarePage() {
   const player = usePlayerStore((s) => s.player);
-  const corruption = usePlayerStore((s) => s.player?.corruption ?? 0);
   const debt = usePlayerStore((s) => s.player?.debt ?? 0);
+  const corruption = usePlayerStore((s) => s.player?.corruption ?? 0);
   const regrets = usePlayerStore((s) => s.player?.totalRegrets ?? 0);
   const title = usePlayerStore((s) => s.player?.title ?? 'Fresh Meat');
   const [messages, setMessages] = useState<string[]>([]);
   const [onlineCount, setOnlineCount] = useState(42069);
   const [billboardIndex, setBillboardIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Keep stats in a ref to avoid effect loop resets when coins change in background
+  const statsRef = useRef({ debt, corruption, regrets, name: player?.name });
+  useEffect(() => {
+    statsRef.current = { debt, corruption, regrets, name: player?.name };
+  }, [debt, corruption, regrets, player?.name]);
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
     const triggerMessage = () => {
@@ -52,34 +57,35 @@ export function GlitchSquarePage() {
         const types = Object.keys(CATEGORIES);
         const selectedType = types[Math.floor(Math.random() * types.length)] as keyof typeof CATEGORIES;
         let msg = CATEGORIES[selectedType][Math.floor(Math.random() * CATEGORIES[selectedType].length)];
-        // Personalization
-        if (Math.random() < 0.4 && player) {
-          if (regrets > 5 && Math.random() < 0.3) {
-            msg = `REGRET ALERT: ${player.name || 'User'} is officially a 'Regret Magnet' with ${regrets} missed opportunities.`;
-          } else if (debt > 10000 && Math.random() < 0.3) {
-            msg = `DEBT WATCH: ${player.name || 'User'}'s soul is now 45% owned by O.V. Corp.`;
-          } else if (corruption > 80 && Math.random() < 0.3) {
-            msg = `SYSTEM WARNING: ${player.name || 'User'} is causing reality leaks. Termination scheduled.`;
+        // Personalization using Ref data
+        const stats = statsRef.current;
+        if (Math.random() < 0.3) {
+          if (stats.regrets > 5 && Math.random() < 0.3) {
+            msg = `REGRET ALERT: ${stats.name || 'User'} is officially a 'Regret Magnet' with ${stats.regrets} missed opportunities.`;
+          } else if (stats.debt > 10000 && Math.random() < 0.3) {
+            msg = `DEBT WATCH: ${stats.name || 'User'}'s soul is now 45% owned by O.V. Corp.`;
+          } else if (stats.corruption > 80 && Math.random() < 0.3) {
+            msg = `SYSTEM WARNING: ${stats.name || 'User'} is causing reality leaks. Termination scheduled.`;
           }
         }
         return [msg, ...prev].slice(0, 30);
       });
-      const nextInterval = Math.floor(Math.random() * 8000) + 2000; // 2s to 10s
+      const nextInterval = Math.floor(Math.random() * 8000) + 2000;
       timeoutId = setTimeout(triggerMessage, nextInterval);
     };
     triggerMessage();
     const countInterval = setInterval(() => {
       setOnlineCount(p => p + (Math.random() > 0.5 ? Math.floor(Math.random() * 5) : -Math.floor(Math.random() * 5)));
-    }, 1500);
+    }, 2000);
     const bbInterval = setInterval(() => {
       setBillboardIndex(prev => (prev + 1) % BILLBOARDS.length);
-    }, 4500);
+    }, 5000);
     return () => {
       clearTimeout(timeoutId);
       clearInterval(countInterval);
       clearInterval(bbInterval);
     };
-  }, [player, regrets, debt, corruption]);
+  }, []); // Only on mount
   const publicShame = Math.min(100, (debt / 500) + (corruption / 2));
   const degenTier = debt > 50000 ? "Systemic Error" : debt > 10000 ? "Liquidity Provider" : "Statistic in Waiting";
   return (
@@ -108,7 +114,7 @@ export function GlitchSquarePage() {
               <CardContent className="flex-1 overflow-y-auto font-mono text-sm p-8 space-y-4 scroll-smooth" ref={scrollRef}>
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => {
-                    const isSpike = msg.includes("WIN_SPIKE") || msg.includes("JACKPOT") || msg.includes("DOPAMINE");
+                    const isSpike = msg.includes("JACKPOT") || msg.includes("DOPAMINE") || msg.includes("WINNER");
                     const isCrash = msg.includes("LIQUIDATION") || msg.includes("RUG") || msg.includes("DEBT");
                     const isRegret = msg.includes("REGRET") || msg.includes("OPPORTUNITY") || msg.includes("TAUNT");
                     return (
@@ -198,7 +204,7 @@ export function GlitchSquarePage() {
         <div className="text-center pt-12">
           <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase tracking-[0.5em] text-sm group">
             <Link to="/">
-              <ArrowLeft className="mr-3 h-5 w-5 group-hover:-translate-x-2 transition-transform" /> 
+              <ArrowLeft className="mr-3 h-5 w-5 group-hover:-translate-x-2 transition-transform" />
               TERMINATE_SOCIAL_SIM
             </Link>
           </Button>

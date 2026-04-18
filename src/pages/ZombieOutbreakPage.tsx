@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
@@ -25,13 +25,14 @@ export function ZombieOutbreakPage() {
   const [score, setScore] = useState(0);
   const [wave, setWave] = useState(1);
   const [lives, setLives] = useState(INITIAL_LIVES);
+  const isSpawning = useRef(false);
   const losses = player?.consecutiveLosses ?? 0;
   const isTilted = losses >= 5;
   const createZombie = useCallback((id: number, currentWave: number): ZombieInfo => {
     return {
       id,
-      initialX: Math.random() * (window.innerWidth * 0.8) + (window.innerWidth * 0.05),
-      duration: Math.max(1.5, 8 - (currentWave * 0.4) - (Math.random() * 2)),
+      initialX: Math.random() * (window.innerWidth * 0.8) + (window.innerWidth * 0.1),
+      duration: Math.max(1.5, 8 - (currentWave * 0.5) - (Math.random() * 2)),
     };
   }, []);
   const startGame = () => {
@@ -45,6 +46,7 @@ export function ZombieOutbreakPage() {
     setLives(INITIAL_LIVES);
     setGameState('playing');
     setZombies([]);
+    isSpawning.current = false;
   };
   const handleShoot = useCallback((id: number) => {
     setScore(prev => prev + 1);
@@ -54,23 +56,31 @@ export function ZombieOutbreakPage() {
     setZombies(prev => prev.filter(z => z.id !== id));
     setLives(prev => prev - 1);
   }, []);
+  // Spawn Effect
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || isSpawning.current) return;
+    isSpawning.current = true;
     const zombiesToSpawn = wave * 2 + 3;
-    const newHorde = Array.from({ length: zombiesToSpawn }, (_, i) =>
+    const newHorde = Array.from({ length: zombiesToSpawn }, (_, i) => 
       createZombie(Date.now() + i + (wave * 1000), wave)
     );
     setZombies(newHorde);
     toast.info(`WAVE ${wave} STARTING...`);
+    // Clear lock after a delay to ensure state propagation
+    setTimeout(() => {
+      isSpawning.current = false;
+    }, 500);
   }, [gameState, wave, createZombie]);
+  // Next Wave Trigger
   useEffect(() => {
-    if (gameState === 'playing' && zombies.length === 0) {
+    if (gameState === 'playing' && zombies.length === 0 && !isSpawning.current) {
       const timer = setTimeout(() => {
         setWave(prev => prev + 1);
-      }, 1000);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [zombies.length, gameState]);
+  // End Game Check
   useEffect(() => {
     if (lives <= 0 && gameState === 'playing') {
       setGameState('finished');
@@ -96,11 +106,11 @@ export function ZombieOutbreakPage() {
       </div>
       <div id="game-area" className="fixed inset-0 w-screen h-screen overflow-hidden bg-gray-900/40 cursor-crosshair">
         {zombies.map(zombie => (
-          <Zombie
-            key={zombie.id}
-            {...zombie}
-            onShoot={handleShoot}
-            onEscape={handleEscape}
+          <Zombie 
+            key={zombie.id} 
+            {...zombie} 
+            onShoot={handleShoot} 
+            onEscape={handleEscape} 
           />
         ))}
       </div>

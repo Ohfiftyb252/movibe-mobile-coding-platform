@@ -20,4 +20,6 @@ export interface Player {
   loginStreak?: number;
   title?: string;
   lastBonusClaimedAt?: number;
+  lastNearMissAt?: number;
+  totalRegrets?: number;
 }

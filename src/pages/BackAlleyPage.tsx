@@ -53,6 +53,7 @@ export function BackAlleyPage() {
     setFeedback('FLIPPING...');
     increaseCorruption(1);
     addHeat(isFixed ? 25 : 5);
+    // Fixed timeout synchronized with the 1.5s CSS transition duration + buffer
     setTimeout(() => {
       if (!mounted.current) return;
       const winChance = isFixed ? 0.15 : 0.45;
@@ -73,7 +74,7 @@ export function BackAlleyPage() {
         setOvCoin(player.ovCoin - bet);
         recordLoss();
       }
-    }, 1500 - ((player?.corruption ?? 0) * 10));
+    }, 1600);
   };
   return (
     <OVWLayout>
@@ -101,9 +102,9 @@ export function BackAlleyPage() {
           </div>
           {player && player.heat > 50 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <Button
-                variant="destructive"
-                size="lg"
+              <Button 
+                variant="destructive" 
+                size="lg" 
                 className="w-full h-16 border-2 border-ov-primary/50 animate-pulse flex flex-col"
                 onClick={() => handleFlip(Math.random() > 0.5 ? 'heads' : 'tails', true)}
                 disabled={isFlipping}
