@@ -19,6 +19,8 @@ interface PlayerWithMeta extends Player {
   loginStreak: number;
   title: string;
   lastBonusClaimedAt: number;
+  lastNearMissAt: number;
+  totalRegrets: number;
 }
 const DEFAULT_PLAYER_STATE: Omit<PlayerWithMeta, 'id' | 'name'> = {
   ovCoin: 0,
@@ -33,6 +35,8 @@ const DEFAULT_PLAYER_STATE: Omit<PlayerWithMeta, 'id' | 'name'> = {
   loginStreak: 0,
   title: 'Fresh Meat',
   lastBonusClaimedAt: 0,
+  lastNearMissAt: 0,
+  totalRegrets: 0,
 };
 type PlayerState = {
   player: PlayerWithMeta | null;
@@ -52,16 +56,18 @@ type PlayerState = {
   smashTerminal: () => void;
   checkDailyStatus: () => void;
   claimDailyBonus: () => void;
+  recordRegret: () => void;
   getLatestAchievement: () => string;
 };
 export const usePlayerStore = create<PlayerState>()(
   immer((set, get) => {
     const calculateTitle = (p: PlayerWithMeta): string => {
+      if (p.totalRegrets > 20) return 'Main Character of the Feed';
       if (p.debt > 50000) return 'Financial Black Hole';
       if (p.corruption > 80) return 'Glitch Architect';
       if (p.debt > 10000) return 'Debt Addict';
       if (p.luck > 80) return 'Lucky Fool';
-      if (p.corruption > 50) return 'Glitch Survivor';
+      if (p.totalRegrets > 10) return 'Statistic in Waiting';
       if (p.consecutiveLosses > 10) return 'The House’s Favorite';
       return p.title || 'Fresh Meat';
     };
@@ -219,6 +225,16 @@ export const usePlayerStore = create<PlayerState>()(
           toast.success("DAILY CORRUPTION BONUS", { description: `+${bonus} OVC. Spend it before your conscience returns.` });
           debouncedUpdate();
         }
+      },
+      recordRegret: () => {
+        set((state) => {
+          if (state.player) {
+            state.player.totalRegrets += 1;
+            state.player.lastNearMissAt = Date.now();
+            state.player.title = calculateTitle(state.player);
+          }
+        });
+        debouncedUpdate();
       },
       getLatestAchievement: () => {
         const p = get().player;

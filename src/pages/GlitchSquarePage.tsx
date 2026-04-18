@@ -4,132 +4,145 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, Terminal, Megaphone, TrendingDown, Eye } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { ArrowLeft, Users, Terminal, Megaphone, TrendingDown, Eye, AlertCircle, ShieldAlert } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { cn } from '@/lib/utils';
-const FAKE_EVENTS = [
-  "User_829 just lost 45,000 OVC on 'Monkey JPEG #4' flip.",
-  "DEBT ALERT: Player 'BrokeBoy' has officially reached 'Slave Labor' status.",
-  "RUG PULL: 1.2M OVC liquidated in The Crypto Carnival. House wins.",
-  "WHALE WATCH: Someone just dropped 200k in The Glitch. Machine remains hungry.",
-  "NEWS: Organ prices up 12%. Check your donor status at the bar.",
-  "Player_XYZ survived Wave 4 in Quarantine. Payout: 12 OVC. Pathetic.",
-  "TONK: 'The Vulture' just took another soul. Card counting detected... and ignored.",
-  "NEW TITLE: 'Financial Black Hole' awarded to User_001.",
-  "Player hit jackpot... and lost it all in exactly 2 spins. Tragic.",
-  "Ignored cash out at +4 Luck in Gander Gallery... public execution by statistics.",
-  "3 glitches in a row for User_99... impressive level of systemic failure.",
-  "Transaction rejected: User conscience detected. Deducting fine.",
-];
+const CATEGORIES = {
+  WIN_SPIKE: [
+    "DOPAMINE ALERT: User_777 hit jackpot (+12,400 OVC) in The Glitch.",
+    "WHALE WATCH: @BigSpender just liquidated a 5,000 OVC position in Crypto Carnival.",
+    "LUCK OVERFLOW: Someone just cleared 5 waves in Quarantine. Rare competence detected.",
+    "WINNER: User_888 just tonked the house for 1,200 OVC. The Vulture is displeased."
+  ],
+  CRASH_STORY: [
+    "LIQUIDATION: User lost everything chasing a fake jackpot. Biometrics seized.",
+    "RUG PULL: 42k OVC drained from The Carnival. House algorithms functioning perfectly.",
+    "BEYOND BROKE: Player 'DebtLord' just hit 1,000,000 OVC in liabilities. Achievement unlocked: Asset.",
+    "CRITICAL FAILURE: User attempted to smash terminal... broke own hand instead. Fine deducted."
+  ],
+  REGRET_EVENT: [
+    "PSYCHOLOGICAL TORMENT: Player ignored 3 Near-Misses in a row. Statistics laugh at you.",
+    "MISSED OPPORTUNITY: Jackpot trap was right there. You lacked the greed to click.",
+    "REGRET: User cashed out at +1. Machine immediately rolled a Triple 7. Tragic.",
+    "SYSTEM TAUNT: That '7' you saw? It was real. You just weren't the chosen one."
+  ]
+};
 const BILLBOARDS = [
   "LOW INTEREST LOANS! (Start at 800% APR)",
   "DON'T NEED THAT SECOND KIDNEY? WE DO.",
   "RECOVER YOUR LOSSES BY LOSING MORE!",
   "THE HOUSE IS ALWAYS DUE. PULL AGAIN.",
-  "BUY THE DIP. IT'S DEFINITELY NOT A CRATER.",
+  "BUY THE DIP. IT'S DEFINITELY NOT A CRATER."
 ];
 export function GlitchSquarePage() {
   const player = usePlayerStore((s) => s.player);
-  const corruption = player?.corruption ?? 0;
-  const debt = player?.debt ?? 0;
+  const corruption = usePlayerStore((s) => s.player?.corruption ?? 0);
+  const debt = usePlayerStore((s) => s.player?.debt ?? 0);
+  const regrets = usePlayerStore((s) => s.player?.totalRegrets ?? 0);
+  const title = usePlayerStore((s) => s.player?.title ?? 'Fresh Meat');
   const [messages, setMessages] = useState<string[]>([]);
   const [onlineCount, setOnlineCount] = useState(42069);
   const [billboardIndex, setBillboardIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
     const triggerMessage = () => {
       setMessages(prev => {
-        let msg = FAKE_EVENTS[Math.floor(Math.random() * FAKE_EVENTS.length)];
-        // Occasional personalized callout
-        if (Math.random() < 0.3 && player) {
-          if (corruption > 50) msg = `SYSTEM WATCH: Corruption detected in Sector 0. Looking at you, ${player.name || 'User'}.`;
-          else if (debt > 5000) msg = `NOTICE: ${player.name || 'User'}'s debt profile has been sold to Sector 4 collection agents.`;
+        const types = Object.keys(CATEGORIES);
+        const selectedType = types[Math.floor(Math.random() * types.length)] as keyof typeof CATEGORIES;
+        let msg = CATEGORIES[selectedType][Math.floor(Math.random() * CATEGORIES[selectedType].length)];
+        // Personalization
+        if (Math.random() < 0.4 && player) {
+          if (regrets > 5 && Math.random() < 0.3) {
+            msg = `REGRET ALERT: ${player.name || 'User'} is officially a 'Regret Magnet' with ${regrets} missed opportunities.`;
+          } else if (debt > 10000 && Math.random() < 0.3) {
+            msg = `DEBT WATCH: ${player.name || 'User'}'s soul is now 45% owned by O.V. Corp.`;
+          } else if (corruption > 80 && Math.random() < 0.3) {
+            msg = `SYSTEM WARNING: ${player.name || 'User'} is causing reality leaks. Termination scheduled.`;
+          }
         }
-        const next = [msg, ...prev];
-        return next.slice(0, 25);
+        return [msg, ...prev].slice(0, 30);
       });
-      // Randomized interval 10-30s
-      const nextInterval = Math.floor(Math.random() * 20000) + 10000;
-      setTimeout(triggerMessage, nextInterval);
+      const nextInterval = Math.floor(Math.random() * 8000) + 2000; // 2s to 10s
+      timeoutId = setTimeout(triggerMessage, nextInterval);
     };
-    const initialTimeout = setTimeout(triggerMessage, 2000);
+    triggerMessage();
     const countInterval = setInterval(() => {
-      setOnlineCount(prev => {
-        const flicker = Math.random() > 0.8 ? (Math.random() > 0.5 ? 500 : -500) : (Math.random() > 0.5 ? 1 : -1);
-        return prev + flicker;
-      });
-    }, 1000);
+      setOnlineCount(p => p + (Math.random() > 0.5 ? Math.floor(Math.random() * 5) : -Math.floor(Math.random() * 5)));
+    }, 1500);
     const bbInterval = setInterval(() => {
       setBillboardIndex(prev => (prev + 1) % BILLBOARDS.length);
-    }, 5000);
-    return () => { 
-      clearTimeout(initialTimeout);
-      clearInterval(countInterval); 
-      clearInterval(bbInterval); 
+    }, 4500);
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(countInterval);
+      clearInterval(bbInterval);
     };
-  }, [player, corruption, debt]);
+  }, [player, regrets, debt, corruption]);
+  const publicShame = Math.min(100, (debt / 500) + (corruption / 2));
+  const degenTier = debt > 50000 ? "Systemic Error" : debt > 10000 ? "Liquidity Provider" : "Statistic in Waiting";
   return (
     <OVWLayout>
-      <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+      <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
         <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-6xl font-display font-bold uppercase glitch-text" data-text="The Glitch Square">
+          <h1 className="text-5xl md:text-7xl font-display font-bold uppercase glitch-text" data-text="The Glitch Square">
             The Glitch Square
           </h1>
-          <div className="flex items-center justify-center gap-2 text-ov-green font-bold">
+          <div className="flex items-center justify-center gap-4 text-ov-green font-bold">
             <Users className="w-5 h-5 animate-pulse" />
-            <span className="text-xl tracking-tighter">
-              <motion.span
-                key={onlineCount}
-                initial={{ opacity: 0.5 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.1 }}
-              >
-                {onlineCount.toLocaleString()}
-              </motion.span> DEGENS ONLINE
+            <span className="text-2xl tracking-tighter tabular-nums">
+              {onlineCount.toLocaleString()} DEGENS ONLINE
             </span>
           </div>
         </div>
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-black/80 border-ov-primary/30 h-[500px] flex flex-col overflow-hidden">
-              <CardHeader className="border-b border-ov-primary/10 py-3 bg-ov-primary/5">
-                <CardTitle className="text-xs uppercase tracking-widest text-ov-primary flex items-center gap-2">
-                  <Terminal className="w-4 h-4" /> Live Tragedy Feed
+        <div className="grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3 space-y-8">
+            <Card className="bg-black/90 border-ov-primary/30 h-[600px] flex flex-col overflow-hidden relative shadow-2xl">
+              <div className="absolute inset-0 scanline opacity-10 pointer-events-none" />
+              <CardHeader className="border-b border-ov-primary/20 py-4 bg-ov-primary/5 backdrop-blur-md">
+                <CardTitle className="text-sm uppercase tracking-[0.3em] text-ov-primary flex items-center gap-3">
+                  <Terminal className="w-5 h-5" /> LIVE_TRAGEDY_FEED_V4.0
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto font-mono text-sm p-6 space-y-4" ref={scrollRef}>
+              <CardContent className="flex-1 overflow-y-auto font-mono text-sm p-8 space-y-4 scroll-smooth" ref={scrollRef}>
                 <AnimatePresence initial={false}>
-                  {messages.map((msg, i) => (
-                    <motion.div
-                      key={i + msg}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={cn(
-                        "flex gap-4 p-2 border-l-2",
-                        msg.includes("ALERT") || msg.includes("RUG") || msg.includes("WATCH") ? "border-red-500 text-red-400" : "border-ov-primary/20 text-ov-gray"
-                      )}
-                    >
-                      <span className="opacity-30">[{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
-                      <span>{msg}</span>
-                    </motion.div>
-                  ))}
+                  {messages.map((msg, i) => {
+                    const isSpike = msg.includes("WIN_SPIKE") || msg.includes("JACKPOT") || msg.includes("DOPAMINE");
+                    const isCrash = msg.includes("LIQUIDATION") || msg.includes("RUG") || msg.includes("DEBT");
+                    const isRegret = msg.includes("REGRET") || msg.includes("OPPORTUNITY") || msg.includes("TAUNT");
+                    return (
+                      <motion.div
+                        key={i + msg}
+                        initial={{ opacity: 0, x: -30, filter: "blur(10px)" }}
+                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                        className={cn(
+                          "flex gap-4 p-4 rounded-lg border-l-4 bg-white/5 transition-all hover:bg-white/10",
+                          isSpike && "border-ov-green text-ov-green bg-ov-green/5 shadow-[0_0_15px_rgba(0,255,156,0.1)]",
+                          isCrash && "border-red-500 text-red-400 bg-red-500/5",
+                          isRegret && "border-ov-primary text-ov-primary bg-ov-primary/5",
+                          !isSpike && !isCrash && !isRegret && "border-ov-gray/20 text-ov-gray"
+                        )}
+                      >
+                        <span className="opacity-40 font-bold shrink-0">[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
+                        <span className="leading-relaxed">{msg}</span>
+                      </motion.div>
+                    );
+                  })}
                 </AnimatePresence>
-                {messages.length === 0 && (
-                  <div className="text-ov-gray/20 text-center mt-20 italic">WAITING FOR DESTRUCTION...</div>
-                )}
               </CardContent>
             </Card>
-            <Card className="bg-ov-primary/5 border-ov-primary/40 relative overflow-hidden h-32 flex items-center justify-center">
-              <div className="absolute top-2 left-2 text-[10px] uppercase text-ov-primary/50 flex items-center gap-1">
-                <Megaphone className="w-3 h-3" /> SPONSORED CONTENT
+            <Card className="bg-ov-primary/5 border-ov-primary/40 relative overflow-hidden h-40 flex items-center justify-center group cursor-help">
+              <div className="absolute top-3 left-4 text-[11px] uppercase text-ov-primary/60 font-black flex items-center gap-2 tracking-widest">
+                <Megaphone className="w-4 h-4 animate-bounce" /> SPONSORED_DESPAIR
               </div>
               <AnimatePresence mode="wait">
                 <motion.p
                   key={billboardIndex}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="text-2xl md:text-3xl font-display uppercase text-center px-8 text-ov-primary"
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 1.05, y: -10 }}
+                  className="text-3xl md:text-4xl font-display uppercase text-center px-12 text-ov-primary leading-tight drop-shadow-[0_0_10px_rgba(255,0,229,0.3)]"
                 >
                   {BILLBOARDS[billboardIndex]}
                 </motion.p>
@@ -137,49 +150,57 @@ export function GlitchSquarePage() {
             </Card>
           </div>
           <div className="space-y-6">
-            <Card className="bg-black/60 border-red-500/20">
-              <CardHeader><CardTitle className="text-xs uppercase text-red-500">Market Sentiment</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-ov-gray text-xs">Despair Index</span>
-                  <span className="text-red-400 font-bold">CRITICAL</span>
+            <Card className="bg-black/80 border-ov-primary/20 p-6 space-y-6 sticky top-32">
+              <div className="space-y-4">
+                <h3 className="text-xs uppercase font-black text-ov-gray tracking-[0.2em] flex items-center gap-2">
+                   <AlertCircle className="w-4 h-4" /> Public Profile
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <span className="text-[10px] uppercase text-ov-gray">Social Rep</span>
+                    <span className="text-ov-primary font-bold">{title}</span>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <span className="text-[10px] uppercase text-ov-gray">Degen Tier</span>
+                    <span className="text-ov-green font-bold">{degenTier}</span>
+                  </div>
                 </div>
-                <div className="h-2 bg-red-950 rounded-full overflow-hidden">
-                  <div className="h-full bg-red-600 w-[94%]" />
+              </div>
+              <div className="space-y-4 pt-4 border-t border-ov-primary/10">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-red-500">
+                    <span>Public Shame Meter</span>
+                    <span>{Math.floor(publicShame)}%</span>
+                  </div>
+                  <Progress value={publicShame} className="h-2 bg-red-950/50" />
+                  <p className="text-[9px] text-ov-gray italic text-center">"The community is watching your downfall."</p>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-ov-gray text-xs">Hopium Levels</span>
-                  <span className="text-ov-primary font-bold">0.02%</span>
+              </div>
+              <div className="space-y-4 pt-4 border-t border-ov-primary/10">
+                <h3 className="text-xs uppercase font-black text-ov-gray tracking-[0.2em]">Market Indices</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-ov-gray">Despair Index</span>
+                    <span className="text-red-500 font-bold animate-pulse">EXTREME</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-ov-gray">Regret Yield</span>
+                    <span className="text-ov-primary font-bold">{(regrets * 1.5).toFixed(1)}%</span>
+                  </div>
                 </div>
-                <div className="h-2 bg-ov-primary/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-ov-primary w-[2%]" />
-                </div>
-              </CardContent>
+              </div>
+              <Button variant="outline" className="w-full border-ov-primary/40 text-ov-primary hover:bg-ov-primary hover:text-black transition-all group h-14">
+                <Eye className="w-5 h-5 mr-3 group-hover:rotate-12" /> REPLAY_TRAGEDY
+              </Button>
             </Card>
-            <Card className="bg-black/60 border-ov-green/20">
-              <CardHeader><CardTitle className="text-xs uppercase text-ov-green">Recent Big Wins</CardTitle></CardHeader>
-              <CardContent className="space-y-4 text-xs">
-                <div className="flex justify-between border-b border-ov-green/10 pb-2">
-                  <span className="text-ov-gray">@LUCKY_RAT</span>
-                  <span className="text-ov-green">+12,500 OVC</span>
-                </div>
-                <div className="flex justify-between border-b border-ov-green/10 pb-2">
-                  <span className="text-ov-gray">@HOUSE_PLANT</span>
-                  <span className="text-ov-green">+4,200 OVC</span>
-                </div>
-                <div className="p-2 bg-ov-green/5 rounded text-ov-green italic text-[10px]">
-                  "It's about time. I only lost 50,000 to get this."
-                </div>
-              </CardContent>
-            </Card>
-            <Button variant="ghost" className="w-full border border-ov-primary/20 hover:bg-ov-primary/10 group h-12">
-              <Eye className="w-4 h-4 mr-2 group-hover:animate-bounce" /> WATCH REPLAYS
-            </Button>
           </div>
         </div>
-        <div className="text-center pt-8">
-          <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase tracking-[0.5em] text-xs">
-            <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> RETREAT TO HUB</Link>
+        <div className="text-center pt-12">
+          <Button asChild variant="link" className="text-ov-primary hover:text-white uppercase tracking-[0.5em] text-sm group">
+            <Link to="/">
+              <ArrowLeft className="mr-3 h-5 w-5 group-hover:-translate-x-2 transition-transform" /> 
+              TERMINATE_SOCIAL_SIM
+            </Link>
           </Button>
         </div>
       </div>

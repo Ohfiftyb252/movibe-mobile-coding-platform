@@ -39,6 +39,7 @@ export function TheGlitchPage() {
   const adjustLuck = usePlayerStore(s => s.adjustLuck);
   const incrementSpinsSinceBigWin = usePlayerStore(s => s.incrementSpinsSinceBigWin);
   const resetSpinsSinceBigWin = usePlayerStore(s => s.resetSpinsSinceBigWin);
+  const recordRegret = usePlayerStore(s => s.recordRegret);
   const currentOvCoin = player?.ovCoin ?? 0;
   const currentLuck = player?.luck ?? 50;
   const consecutiveLosses = player?.consecutiveLosses ?? 0;
@@ -50,6 +51,7 @@ export function TheGlitchPage() {
   const [feedback, setFeedback] = useState('DEPOSIT HOPE HERE.');
   const [gameResult, setGameResult] = useState<'win' | 'loss' | 'near-miss' | null>(null);
   const [showTrap, setShowTrap] = useState(false);
+  const [lastTrapResult, setLastTrapResult] = useState<boolean | null>(null);
   const isTension = useMemo(() => {
     return isSpinning && reels[0] === reels[1] && reels[0] !== 2;
   }, [isSpinning, reels]);
@@ -67,6 +69,8 @@ export function TheGlitchPage() {
     const bet = Number(betAmount);
     if (!bet || bet <= 0) { toast.error("INVALID INPUT"); return; }
     if (bet > currentOvCoin) { toast.error("INSUFFICIENT LIQUIDITY"); return; }
+    // If they got a trap bonus and then lost, that's a prime regret event
+    const hadTrapBonus = lastTrapResult === true;
     setIsSpinning(true);
     setIsFakeOut(false);
     setGameResult(null);
@@ -132,6 +136,7 @@ export function TheGlitchPage() {
           recordLoss();
           adjustLuck(-2);
           addHeat(20);
+          recordRegret(); // Getting glitch-faked is a huge regret
           toast.error("DOPAMINE CRASH", { description: "The house always takes what it 'accidentally' gave." });
         }, 1500);
       } else {
@@ -147,15 +152,20 @@ export function TheGlitchPage() {
             resetLosses();
             if (outcome === 'big') resetSpinsSinceBigWin();
             adjustLuck(-10);
+            setLastTrapResult(null);
           } else if (newReels[0] === newReels[1]) {
             setGameResult('near-miss');
             setFeedback('SO CLOSE. TRY AGAIN?');
             adjustLuck(1);
             recordLoss();
+            recordRegret(); // Near miss counts as regret
+            setLastTrapResult(null);
           } else {
             setGameResult('loss');
             setFeedback('EXPECTED OUTCOME.');
             recordLoss();
+            if (hadTrapBonus) recordRegret(); // Losing after a bonus is painful
+            setLastTrapResult(null);
           }
         }, isTension ? 1500 : 800);
       }
@@ -167,6 +177,7 @@ export function TheGlitchPage() {
     setOvCoin(currentOvCoin + bonus);
     setShowTrap(false);
     adjustLuck(-5);
+    setLastTrapResult(true);
   };
   return (
     <OVWLayout>
