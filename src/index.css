@@ -47,7 +47,6 @@
   .vignette {
     background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
   }
-  /* Phase 31: The Illusion of Choice Effects */
   .coin-shimmer {
     background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 55%, rgba(255,255,255,0) 100%);
     background-size: 200% 200%;
@@ -70,6 +69,15 @@
   .shake-sm {
     animation: shake-tiny 0.2s ease-in-out infinite;
   }
+  .animate-coin-glitch {
+    animation: coin-midair-jitter 0.1s infinite;
+  }
+}
+@keyframes coin-midair-jitter {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-2px, 2px) rotate(-1deg); }
+  50% { transform: translate(2px, -2px) rotate(1deg); }
+  75% { transform: translate(-1px, -1px) rotate(0.5deg); }
 }
 @keyframes shimmer-move {
   0% { background-position: -200% -200%; }

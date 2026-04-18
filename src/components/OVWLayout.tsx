@@ -117,6 +117,9 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
   const checkDailyStatus = usePlayerStore((s) => s.checkDailyStatus);
   const player = usePlayerStore((s) => s.player);
   const playerId = player?.id;
+  // Synchronization Note: The 'Tilted' state (losses >= 5) intensity 
+  // and overlay effects are driven by results from BackAlleyPage, 
+  // TheGlitchPage, and other competitive zones via player-store.
   const hasCheckedDaily = useRef(false);
   useEffect(() => {
     loadPlayer('PLAYER_ONE');

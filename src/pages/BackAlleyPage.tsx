@@ -9,7 +9,7 @@ import { ArrowLeft, Coins, Skull, AlertTriangle, Flame, HelpCircle } from 'lucid
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-const Coin = ({ isFlipping, result, heat }: { isFlipping: boolean; result: 'heads' | 'tails' | null; heat: number }) => {
+const Coin = ({ isFlipping, result, heat, isGlitching }: { isFlipping: boolean; result: 'heads' | 'tails' | null; heat: number; isGlitching: boolean }) => {
   const [showRealityFlicker, setShowRealityFlicker] = useState(false);
   useEffect(() => {
     if (heat > 75 && !isFlipping) {
@@ -23,13 +23,12 @@ const Coin = ({ isFlipping, result, heat }: { isFlipping: boolean; result: 'head
     }
   }, [heat, isFlipping]);
   return (
-    <div className="w-48 h-48 perspective-1000">
+    <div className={cn("w-48 h-48 perspective-1000", isGlitching && isFlipping && "animate-coin-glitch")}>
       <motion.div
         className="w-full h-full relative preserve-3d"
         animate={{
-          // Use keyframes for a mechanical stutter effect instead of a custom string easing
-          rotateY: isFlipping 
-            ? [0, 500, 480, 1000, 980, 1500, 1480, 1800] 
+          rotateY: isFlipping
+            ? [0, 500, 480, 1000, 980, 1500, 1480, 1800]
             : (result === 'tails' ? 180 : 0),
           scale: isFlipping ? 1.15 : 1
         }}
@@ -38,7 +37,6 @@ const Coin = ({ isFlipping, result, heat }: { isFlipping: boolean; result: 'head
           ease: "easeInOut"
         }}
       >
-        {/* Front: HEADS */}
         <div className={cn(
           "absolute w-full h-full backface-hidden flex flex-col items-center justify-center rounded-full border-8 border-yellow-600 shadow-[0_0_30px_rgba(234,179,8,0.4)] bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 overflow-hidden",
           showRealityFlicker && "opacity-40 brightness-150"
@@ -47,7 +45,6 @@ const Coin = ({ isFlipping, result, heat }: { isFlipping: boolean; result: 'head
           <Skull className="w-20 h-20 text-yellow-900 drop-shadow-lg" />
           <span className="text-2xl font-display font-black text-yellow-900 tracking-tighter mt-1">HEADS</span>
         </div>
-        {/* Back: ALSO HEADS (Tails Result) */}
         <div className="absolute w-full h-full backface-hidden flex flex-col items-center justify-center rounded-full border-8 border-neutral-800 shadow-[0_0_40px_rgba(0,0,0,0.8)] bg-gradient-to-tr from-neutral-800 via-neutral-900 to-black transform rotate-y-180 melted-border relative overflow-hidden">
           <div className="cracked-surface absolute inset-0 opacity-40" />
           <Skull className="w-20 h-20 text-red-900 warped-sigil" />
@@ -73,6 +70,7 @@ export function BackAlleyPage() {
   const recordRegret = usePlayerStore((s) => s.recordRegret);
   const [betAmount, setBetAmount] = useState<number | ''>(10);
   const [isFlipping, setIsFlipping] = useState(false);
+  const [isGlitching, setIsGlitching] = useState(false);
   const [coinResult, setCoinResult] = useState<'heads' | 'tails' | null>(null);
   const [feedback, setFeedback] = useState('TRUST THE COIN.');
   const [gameResult, setGameResult] = useState<'win' | 'loss' | null>(null);
@@ -87,6 +85,9 @@ export function BackAlleyPage() {
     setIsFlipping(true);
     setGameResult(null);
     setFeedback('MANIPULATING PROBABILITY...');
+    // 20% natural glitch chance, 100% if rigged
+    const midAirGlitchTrigger = isFixed || Math.random() < 0.2;
+    setIsGlitching(midAirGlitchTrigger);
     increaseCorruption(1);
     addHeat(isFixed ? 30 : 5);
     setTimeout(() => {
@@ -96,24 +97,36 @@ export function BackAlleyPage() {
       const flipResult = playerWins ? choice : (choice === 'heads' ? 'tails' : 'heads');
       setCoinResult(flipResult);
       setIsFlipping(false);
+      setIsGlitching(false);
+      const processResult = () => {
+        if (!mounted.current) return;
+        if (playerWins) {
+          const mult = isFixed ? 6 : 2;
+          const winnings = bet * mult;
+          setGameResult('win');
+          setFeedback("HUH… LUCKY.");
+          setOvCoin(player.ovCoin - bet + winnings);
+          resetLosses();
+        } else {
+          setGameResult('loss');
+          const lossFeedback = Math.random() < 0.3 ? "IT LANDED EXACTLY HOW IT WAS SUPPOSED TO." : "TOUGH BREAK.";
+          setFeedback(lossFeedback);
+          setOvCoin(player.ovCoin - bet);
+          recordLoss();
+          recordRegret();
+        }
+      };
+      // Differentiated timing: Wins delay reveal for tension, Losses snap instantly
       if (playerWins) {
-        const mult = isFixed ? 6 : 2;
-        const winnings = bet * mult;
-        setGameResult('win');
-        setFeedback(`STATISTICAL ANOMALY! +${winnings.toLocaleString()}`);
-        setOvCoin(player.ovCoin - bet + winnings);
-        resetLosses();
+        setTimeout(processResult, 600);
       } else {
-        setGameResult('loss');
-        setFeedback(flipResult === 'tails' ? "HEADS YOU LOSE. ALSO HEADS." : "THE HOUSE FLIPS BOTH WAYS.");
-        setOvCoin(player.ovCoin - bet);
-        recordLoss();
-        recordRegret();
+        processResult();
       }
-    }, 1900); // Synchronized with 1.8s duration + padding
+    }, 1900);
   };
-  const heat = player?.heat ?? 0;
-  const isTilted = (player?.consecutiveLosses ?? 0) >= 5;
+  const heat = usePlayerStore((s) => s.player?.heat ?? 0);
+  const losses = usePlayerStore((s) => s.player?.consecutiveLosses ?? 0);
+  const isTilted = losses >= 5;
   return (
     <OVWLayout>
       <div className={cn("text-center animate-fade-in mb-12", gameResult === 'loss' && "shake-sm")}>
@@ -127,7 +140,7 @@ export function BackAlleyPage() {
         gameResult === 'loss' && "border-red-500/50 shadow-[inset_0_0_50px_rgba(220,38,38,0.2)]"
       )}>
         {gameResult === 'loss' && <div className="absolute inset-0 bg-red-950/10 reality-glitch pointer-events-none" />}
-        <Coin isFlipping={isFlipping} result={coinResult} heat={heat} />
+        <Coin isFlipping={isFlipping} result={coinResult} heat={heat} isGlitching={isGlitching} />
         <div className="h-12 flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.p
@@ -193,7 +206,7 @@ export function BackAlleyPage() {
                   RIG THE REVEAL
                   <AlertTriangle className="w-5 h-5" />
                 </div>
-                <span className="text-[10px] opacity-70 tracking-[0.2em]">6X PAYOUT // HIGH DETECTION RISK</span>
+                <span className="text-[10px] opacity-70 tracking-[0.2em]">6X PAYOUT // GUARANTEED GLITCH</span>
               </Button>
             </motion.div>
           )}
