@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dices, Gem, Trash2, Bird, Crosshair, Bot, Biohazard, Users, Terminal } from 'lucide-react';
+import { Dices, Gem, Trash2, Bird, Crosshair, Bot, Biohazard, Users, Terminal, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 const locations = [
   {
     to: '/location/back-alley',
@@ -62,6 +63,11 @@ const locations = [
   },
 ];
 export function HomePage() {
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success("URL PERSISTED", { description: "Tell them what you saw. Spread the plague." });
+  };
+
   return (
     <OVWLayout>
       <div className="max-w-7xl mx-auto">
@@ -87,7 +93,10 @@ export function HomePage() {
                 </div>
              </CardContent>
           </Card>
-          <Card className="bg-ov-primary/5 border-ov-primary/20 flex flex-col justify-center p-4">
+          <Card className="bg-ov-primary/5 border-ov-primary/20 flex flex-col justify-center p-4 relative group">
+             <Button onClick={handleShare} variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-ov-primary">
+               <Share2 className="w-4 h-4" />
+             </Button>
              <p className="text-[10px] uppercase text-ov-primary font-bold tracking-widest">Global Status</p>
              <p className="text-xl text-ov-foreground font-display">UNSTABLE</p>
           </Card>

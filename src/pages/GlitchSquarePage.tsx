@@ -56,28 +56,25 @@ export function GlitchSquarePage() {
     statsRef.current = { debt, corruption, regrets, name: player?.name, title };
   }, [debt, corruption, regrets, player?.name, title]);
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    const triggerMessage = () => {
-      setMessages(prev => {
-        const types = Object.keys(CATEGORIES);
-        const selectedType = types[Math.floor(Math.random() * types.length)] as keyof typeof CATEGORIES;
-        let msg = CATEGORIES[selectedType][Math.floor(Math.random() * CATEGORIES[selectedType].length)];
-        const stats = statsRef.current;
-        if (Math.random() < 0.35) {
-          if (stats.regrets > 5 && Math.random() < 0.4) {
-            msg = `REGRET ALERT: ${stats.name || 'User'} (${stats.title}) is officially a 'Regret Magnet' with ${stats.regrets} missed opportunities.`;
-          } else if (stats.debt > 20000 && Math.random() < 0.4) {
-            msg = `DEBT WATCH: ${stats.name || 'User'}'s soul is now 65% owned by O.V. Corp. Debt: ${stats.debt.toLocaleString()}.`;
-          } else if (stats.corruption > 85 && Math.random() < 0.4) {
-            msg = `SYSTEM WARNING: ${stats.name || 'User'} is leaking corruption into the feed. Termination recommended.`;
-          }
-        }
-        return [msg, ...prev].slice(0, 40);
-      });
-      const nextInterval = Math.floor(Math.random() * 6000) + 1000;
-      timeoutId = setTimeout(triggerMessage, nextInterval);
+    let isMounted = true;
+    const generateNext = () => {
+      if (!isMounted) return;
+      const types = Object.keys(CATEGORIES);
+      const selectedType = types[Math.floor(Math.random() * types.length)] as keyof typeof CATEGORIES;
+      let msg = CATEGORIES[selectedType][Math.floor(Math.random() * CATEGORIES[selectedType].length)];
+      const stats = statsRef.current;
+      if (Math.random() < 0.35) {
+        if (stats.regrets > 5 && Math.random() < 0.4) msg = `REGRET ALERT: ${stats.name || 'User'} (${stats.title}) is officially a 'Regret Magnet' with ${stats.regrets} missed opportunities.`;
+        else if (stats.debt > 20000 && Math.random() < 0.4) msg = `DEBT WATCH: ${stats.name || 'User'}'s soul is now 65% owned by O.V. Corp. Debt: ${stats.debt.toLocaleString()}.`;
+        else if (stats.corruption > 85 && Math.random() < 0.4) msg = `SYSTEM WARNING: ${stats.name || 'User'} is leaking corruption into the feed. Termination recommended.`;
+      }
+
+      const timestampedMsg = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}|${msg}`;
+      setMessages(prev => [timestampedMsg, ...prev].slice(0, 60));
+      setTimeout(generateNext, Math.floor(Math.random() * 5000) + 1000);
     };
-    triggerMessage();
+
+    generateNext();
     const countInterval = setInterval(() => {
       setOnlineCount(p => p + (Math.random() > 0.5 ? Math.floor(Math.random() * 8) : -Math.floor(Math.random() * 8)));
     }, 2500);
@@ -85,7 +82,7 @@ export function GlitchSquarePage() {
       setBillboardIndex(prev => (prev + 1) % BILLBOARDS.length);
     }, 5000);
     return () => {
-      clearTimeout(timeoutId);
+      isMounted = false;
       clearInterval(countInterval);
       clearInterval(bbInterval);
     };
@@ -117,13 +114,14 @@ export function GlitchSquarePage() {
               </CardHeader>
               <CardContent className="flex-1 overflow-y-auto font-mono text-sm p-8 space-y-4 scroll-smooth" ref={scrollRef}>
                 <AnimatePresence initial={false}>
-                  {messages.map((msg, i) => {
+                  {messages.map((rawMsg) => {
+                    const [id, msg] = rawMsg.includes('|') ? rawMsg.split('|') : [Math.random().toString(), rawMsg];
                     const isSpike = msg.includes("JACKPOT") || msg.includes("DOPAMINE") || msg.includes("WINNER");
                     const isCrash = msg.includes("LIQUIDATION") || msg.includes("RUG") || msg.includes("DEBT") || msg.includes("WARNING");
                     const isRegret = msg.includes("REGRET") || msg.includes("OPPORTUNITY") || msg.includes("TAUNT") || msg.includes("WHISPER");
                     return (
                       <motion.div
-                        key={i + msg}
+                        key={id}
                         initial={{ opacity: 0, x: -30, filter: "blur(10px)" }}
                         animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                         className={cn(

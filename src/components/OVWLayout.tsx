@@ -146,12 +146,18 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
           height: 100vh !important;
           width: 100vw !important;
           position: fixed !important;
+          touch-action: none !important;
         }
         body.game-active main {
           padding-top: 0 !important;
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+        body.game-active main > div {
+          padding-top: 0 !important;
+          margin-top: 0 !important;
+          width: 100%;
         }
         body.game-active header {
           opacity: 0.3;
@@ -163,7 +169,7 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
       `}</style>
       <div className="fixed inset-0 pointer-events-none z-[100] scanline opacity-[0.03]"></div>
       <div className="fixed inset-0 pointer-events-none z-[101] vignette opacity-50"></div>
-      {isTilted && <TiltedOverlay intensity={losses} />}
+      {isTilted && <TiltedOverlay intensity={Math.min(losses, 10)} />}
       <header className={cn(
         "fixed top-0 left-0 right-0 z-[60] backdrop-blur-2xl bg-ov-dark/80 border-b border-ov-primary/20 transition-all",
         corruption > 85 && "border-ov-primary shadow-2xl shadow-ov-primary/20"

@@ -33,13 +33,14 @@ export function SatiricalTicker() {
     }
     return [...news, ...news, ...news]; // Triple for seamless scroll on wide screens
   }, [debt, corruption, regrets]);
-  // Speed up based on heat (min 40s, max speed 15s)
-  const duration = Math.max(15, 45 - (heat / 5));
+  // Speed up based on heat (min 15s, max speed scaling from 60s)
+  const duration = Math.max(15, 60 - (heat / 4));
   return (
     <div className="w-full bg-black/60 border-y border-ov-primary/20 overflow-hidden py-1.5 select-none pointer-events-none backdrop-blur-sm">
       <motion.div
         className="flex whitespace-nowrap"
-        animate={{ x: [0, -2000] }}
+        style={{ willChange: 'transform' }}
+        animate={{ x: [0, -4000] }}
         transition={{
           duration: duration,
           repeat: Infinity,
