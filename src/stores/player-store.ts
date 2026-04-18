@@ -70,7 +70,6 @@ export const usePlayerStore = create<PlayerState>()(
         set({ isLoading: true, error: null });
         try {
           const rawPlayer = await api<Player>(`/api/player/${id}`);
-          // DEFENSIVE MERGE: Ensure all properties exist even if legacy data is missing them
           const mergedPlayer: Player = {
             ...DEFAULT_PLAYER_STATE,
             ...rawPlayer,
@@ -85,15 +84,15 @@ export const usePlayerStore = create<PlayerState>()(
         }
       },
       updatePlayer: async (id, updates) => {
-        set((state) => { 
+        set((state) => {
           if (state.player) {
-            Object.assign(state.player, updates); 
+            Object.assign(state.player, updates);
           }
         });
         try {
-          await api<Player>(`/api/player/${id}`, { 
-            method: 'POST', 
-            body: JSON.stringify(updates) 
+          await api<Player>(`/api/player/${id}`, {
+            method: 'POST',
+            body: JSON.stringify(updates)
           });
         } catch (error) {
           console.error(error);
@@ -106,7 +105,19 @@ export const usePlayerStore = create<PlayerState>()(
       setOvCoin: (amount) => {
         const player = get().player;
         if (!player) return;
-        if (amount <= 0) {
+        if (amount < 0) {
+            toast.error("SYSTEM DEFICIT", {
+                description: "You've gone past zero. The Vultures are calculating your organ market value.",
+                duration: 5000,
+            });
+            set(state => {
+                if (state.player) {
+                    state.player.debt += Math.abs(amount);
+                    state.player.ovCoin = 0;
+                }
+            });
+            debouncedUpdate();
+        } else if (amount === 0 && player.ovCoin > 0) {
           toast.info("PITY PARTY!", {
             description: "You're broke. Here's a hat and 500 O.V. Coin. That's more debt for you.",
             duration: 5000,
@@ -138,7 +149,12 @@ export const usePlayerStore = create<PlayerState>()(
         debouncedUpdate();
       },
       adjustLuck: (amount) => {
-        set(state => { if (state.player) state.player.luck = Math.min(100, Math.max(0, (state.player.luck ?? 50) + amount)); });
+        set(state => { 
+          if (state.player) {
+            const currentLuck = state.player.luck ?? 50;
+            state.player.luck = Math.min(100, Math.max(0, currentLuck + amount));
+          }
+        });
         debouncedUpdate();
       },
       increaseCorruption: (amount) => {

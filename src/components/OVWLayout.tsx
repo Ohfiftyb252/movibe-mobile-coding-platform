@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePlayerStore } from '@/stores/player-store';
 import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Coins, Package, Flame, Clover, Skull, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 const DEBT_ROASTS = [
   "The House owns your soul. And your left shoe.",
   "Your credit score is currently 'Nuclear Winter'.",
@@ -16,34 +17,58 @@ function PlayerStats() {
   const player = usePlayerStore((s) => s.player);
   const isLoading = usePlayerStore((s) => s.isLoading);
   const error = usePlayerStore((s) => s.error);
+  const [prevLuck, setPrevLuck] = useState(50);
+  const [prevHeat, setPrevHeat] = useState(0);
+  const [luckFlash, setLuckFlash] = useState(false);
+  const [heatFlash, setHeatFlash] = useState(false);
+  useEffect(() => {
+    if (player) {
+      if (Math.abs((player.luck ?? 50) - prevLuck) > 5) {
+        setLuckFlash(true);
+        setTimeout(() => setLuckFlash(false), 1000);
+      }
+      if (Math.abs((player.heat ?? 0) - prevHeat) > 10) {
+        setHeatFlash(true);
+        setTimeout(() => setHeatFlash(false), 1000);
+      }
+      setPrevLuck(player.luck ?? 50);
+      setPrevHeat(player.heat ?? 0);
+    }
+  }, [player?.luck, player?.heat]);
   const roast = useMemo(() => DEBT_ROASTS[Math.floor(Math.random() * DEBT_ROASTS.length)], []);
-  if (isLoading) return <div className="text-ov-gray animate-pulse text-xs">Syncing Player_One...</div>;
-  if (error || !player) return <div className="text-red-500 text-xs font-bold uppercase">System Offline</div>;
+  if (isLoading) return <div className="text-ov-gray animate-pulse text-xs tracking-widest font-bold">SYNCHRONIZING...</div>;
+  if (error || !player) return <div className="text-red-500 text-xs font-bold uppercase animate-pulse">SYSTEM_FAULT: NO_DATA</div>;
   const debt = player.debt ?? 0;
   return (
     <div className="flex flex-col gap-2 items-end">
       <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-4 px-3 py-1 bg-black/60 border border-ov-primary/20 rounded-full text-[10px] uppercase tracking-tighter">
-          <div className="flex items-center gap-1 text-orange-500" title="Heat (Cops Watching)">
-            <Flame className="w-3 h-3" /> {player.heat ?? 0}
+        <div className="hidden sm:flex items-center gap-4 px-4 py-2 bg-black/80 border border-ov-primary/20 rounded-xl text-[10px] uppercase tracking-tighter">
+          <div className={cn(
+            "flex items-center gap-1.5 transition-all duration-300",
+            heatFlash ? "text-red-500 scale-110 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" : "text-orange-500"
+          )} title="Heat (Attention Level)">
+            <Flame className={cn("w-3 h-3", heatFlash && "animate-bounce")} /> {player.heat ?? 0}
           </div>
-          <div className="flex items-center gap-1 text-green-400" title="Luck (Street Cred)">
-            <Clover className="w-3 h-3" /> {player.luck ?? 50}%
+          <div className={cn(
+            "flex items-center gap-1.5 transition-all duration-300",
+            luckFlash ? "text-ov-primary scale-110 drop-shadow-[0_0_8px_rgba(255,0,229,0.8)]" : "text-green-400"
+          )} title="Luck (Algorithmic Favor)">
+            <Clover className={cn("w-3 h-3", luckFlash && "animate-spin")} /> {player.luck ?? 50}%
           </div>
-          <div className="flex items-center gap-1 text-red-400 font-bold" title="Debt (The Real Boss)">
+          <div className="flex items-center gap-1.5 text-red-400 font-bold" title="Debt (Liquid Asset Denial)">
             <Skull className="w-3 h-3" /> {debt.toLocaleString()}
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-ov-green/10 border border-ov-green/30 px-3 py-1 rounded shadow-[0_0_10px_rgba(0,255,156,0.1)]">
+        <div className="flex items-center gap-3 bg-ov-green/5 border border-ov-green/30 px-4 py-1.5 rounded-lg shadow-[0_0_20px_rgba(0,255,156,0.05)]">
           <Coins className="w-4 h-4 text-ov-green" />
-          <span className="font-mono text-ov-green font-bold">{(player.ovCoin ?? 0).toLocaleString()}</span>
+          <span className="font-mono text-ov-green font-bold text-lg leading-none tracking-tight">{(player.ovCoin ?? 0).toLocaleString()}</span>
         </div>
         <Button asChild variant="ghost" size="icon" className="text-ov-gray hover:text-ov-primary hover:bg-ov-primary/10 transition-colors">
           <Link to="/inventory"><Package className="w-5 h-5" /></Link>
         </Button>
       </div>
       <div className="w-32 sm:w-48 space-y-1">
-        <div className="flex justify-between text-[10px] uppercase tracking-tighter text-ov-primary/70">
+        <div className="flex justify-between text-[10px] uppercase tracking-[0.2em] text-ov-primary/70 font-bold">
           <span>Corruption</span>
           <span>{player.corruption ?? 0}%</span>
         </div>
@@ -51,11 +76,11 @@ function PlayerStats() {
       </div>
       {debt > 1000 && (
         <div className="fixed top-24 right-4 max-w-[280px] sm:max-w-xs animate-slide-up z-[70]">
-          <div className="bg-red-950/90 border-2 border-red-500/50 p-3 rounded-lg backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.3)] flex gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <div className="bg-red-950/90 border-2 border-red-500/50 p-3 rounded-xl backdrop-blur-xl shadow-[0_0_30px_rgba(239,68,68,0.2)] flex gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             <div className="text-xs">
-              <p className="font-bold text-red-400 uppercase tracking-widest">DEBT ALERT</p>
-              <p className="text-red-100 italic mt-1 font-sans">"{roast}"</p>
+              <p className="font-bold text-red-400 uppercase tracking-widest text-[10px]">RECOVERY_ALERT</p>
+              <p className="text-red-100 italic mt-1 font-sans leading-tight">"{roast}"</p>
             </div>
           </div>
         </div>
@@ -78,11 +103,11 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 pointer-events-none z-[100] scanline opacity-[0.03]"></div>
       <div className="fixed inset-0 pointer-events-none z-[101] vignette opacity-50"></div>
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat opacity-5 pointer-events-none"></div>
-      <header className="fixed top-0 left-0 right-0 z-[60] p-4 backdrop-blur-lg bg-ov-dark/60 border-b border-ov-primary/20">
-        <div className="max-w-7xl mx-auto flex justify-between items-start">
-          <Link 
-            to="/" 
-            className="font-display text-xl uppercase glitch-text mt-1 hover:scale-105 transition-transform inline-block" 
+      <header className="fixed top-0 left-0 right-0 z-[60] p-4 backdrop-blur-2xl bg-ov-dark/80 border-b border-ov-primary/20">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <Link
+            to="/"
+            className="font-display text-2xl md:text-3xl uppercase glitch-text hover:scale-105 transition-transform inline-block"
             data-text="O.V.W"
           >
             O.V.W
@@ -90,20 +115,27 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
           <PlayerStats />
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="pt-24 pb-20 md:pt-32 lg:pt-36">
+      <main className="max-w-7xl mx-auto">
+        <div className="pt-28 pb-20 md:pt-36 lg:pt-40 min-h-screen">
           {children}
         </div>
       </main>
-      <footer className="fixed bottom-0 left-0 right-0 p-4 text-center text-ov-gray/20 text-[10px] pointer-events-none uppercase tracking-[0.5em] z-40">
-        O.V. WORLD :: BUILT WITH REGRETS :: 2025
+      <footer className="fixed bottom-0 left-0 right-0 p-6 text-center text-ov-gray/10 text-[10px] pointer-events-none uppercase tracking-[1em] z-40 bg-gradient-to-t from-ov-dark to-transparent">
+        O.V. WORLD :: BUILT WITH REGRETS :: MMXXV
       </footer>
-      <Toaster 
-        theme="dark" 
-        richColors 
-        closeButton 
+      <Toaster
+        theme="dark"
+        richColors
+        closeButton
         toastOptions={{
-          style: { zIndex: 9999, background: '#101214', border: '1px solid rgba(255, 0, 229, 0.3)' }
+          style: { 
+            zIndex: 9999, 
+            background: 'rgba(16, 18, 20, 0.95)', 
+            border: '1px solid rgba(255, 0, 229, 0.3)',
+            backdropFilter: 'blur(12px)',
+            fontFamily: 'VT323, monospace',
+            textTransform: 'uppercase'
+          }
         }}
       />
     </div>
