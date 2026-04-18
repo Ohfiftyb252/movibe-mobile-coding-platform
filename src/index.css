@@ -63,7 +63,6 @@
     text-shadow: -1px 0 #f0f, 1px 0 #0ff;
     animation: glitch-anim-2 3s infinite linear alternate-reverse;
   }
-  /* Retro Polish Effects */
   .scanline {
     background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.5) 51%);
     background-size: 100% 4px;
@@ -72,6 +71,45 @@
   .vignette {
     background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
   }
+  /* Phase 30: Promise & Reality Effects */
+  .coin-shimmer {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0) 45%,
+      rgba(255, 255, 255, 0.5) 50%,
+      rgba(255, 255, 255, 0) 55%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 200%;
+    animation: shimmer-move 3s infinite linear;
+  }
+  .melted-border {
+    clip-path: polygon(
+      0% 15%, 15% 0%, 85% 5%, 100% 20%, 95% 80%, 80% 100%, 20% 95%, 5% 75%, 10% 40%
+    );
+  }
+  .reality-glitch {
+    animation: reality-pulse 0.5s ease-in-out infinite alternate;
+    filter: contrast(1.5) saturate(0.5) brightness(0.8);
+  }
+  .shake-sm {
+    animation: shake-tiny 0.2s ease-in-out infinite;
+  }
+}
+@keyframes shimmer-move {
+  0% { background-position: -200% -200%; }
+  100% { background-position: 200% 200%; }
+}
+@keyframes reality-pulse {
+  0% { filter: contrast(1.2) brightness(0.9); transform: scale(1); }
+  100% { filter: contrast(1.8) brightness(0.6) blur(1px); transform: scale(1.02); }
+}
+@keyframes shake-tiny {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-1px, -1px); }
 }
 @keyframes scanline-scroll {
   0% { background-position: 0 0; }

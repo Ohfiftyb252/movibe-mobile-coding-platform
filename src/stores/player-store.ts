@@ -72,7 +72,7 @@ export const usePlayerStore = create<PlayerState>()(
       return p.title || 'Fresh Meat';
     };
     const debouncedUpdate = debounce(async () => {
-      const { player } = get();
+      const player = get().player;
       if (!player) return;
       try {
         await api(`/api/player/${player.id}`, {
@@ -80,7 +80,7 @@ export const usePlayerStore = create<PlayerState>()(
           body: JSON.stringify(player),
         });
       } catch (error) {
-        console.error(error);
+        console.error("Persistence failed:", error);
       }
     }, 1000);
     return {
