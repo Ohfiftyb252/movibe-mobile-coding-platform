@@ -78,7 +78,7 @@ export function TheGlitchPage() {
     incrementSpinsSinceBigWin();
     setTimeout(() => {
       if (!mounted.current) return;
-      const luckFactor = (currentLuck - 50) / 50; 
+      const luckFactor = (currentLuck - 50) / 50;
       let pSmallWin = 0.42;
       let pBigWin = 0.06;
       let pNearMiss = 0.38;
@@ -108,8 +108,7 @@ export function TheGlitchPage() {
         Math.floor(Math.random() * SYMBOLS.length),
       ];
       if (outcome === 'big') {
-        const sym = 3; 
-        newReels = [sym, sym, sym];
+        newReels = [3, 3, 3];
       } else if (outcome === 'small') {
         const sym = [0, 1, 4][Math.floor(Math.random() * 3)];
         newReels = [sym, sym, sym];
@@ -164,7 +163,7 @@ export function TheGlitchPage() {
   };
   const handleTrap = () => {
     const bonus = Math.floor(Math.random() * 100) + 50;
-    toast.success("TRAP SPRUNG", { description: `Intercepted +${bonus} O.V.C.Greed pays... sometimes.` });
+    toast.success("TRAP SPRUNG", { description: `Intercepted +${bonus} O.V.C. Greed pays... sometimes.` });
     setOvCoin(currentOvCoin + bonus);
     setShowTrap(false);
     adjustLuck(-5);
@@ -190,13 +189,13 @@ export function TheGlitchPage() {
                 <SlotReel symbols={SYMBOLS} finalIndex={reels[2]} isSpinning={isSpinning} delay={0.4} tension={isTension} isGlitching={isFakeOut} />
                 <AnimatePresence>
                   {showTrap && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0 }}
                       className="absolute -right-4 top-0 z-50"
                     >
-                      <Button 
+                      <Button
                         onClick={handleTrap}
                         className="rounded-full w-16 h-16 bg-ov-green border-4 border-black text-black hover:scale-110 shadow-[0_0_20px_rgba(0,255,156,0.8)]"
                       >
@@ -236,7 +235,7 @@ export function TheGlitchPage() {
           <CardContent className="space-y-8">
             <div className="space-y-4">
               <div className="flex justify-between items-end text-[10px] uppercase font-bold">
-                <span className="text-ov-gray">Wager</span>
+                <span className="text-ov-gray">Balance</span>
                 <span className="text-ov-primary">{currentOvCoin.toLocaleString()}</span>
               </div>
               <div className="relative group">

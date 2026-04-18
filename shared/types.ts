@@ -15,4 +15,5 @@ export interface Player {
   heat: number;
   luck: number;
   corruption: number;
+  spinsSinceBigWin?: number;
 }
