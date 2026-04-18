@@ -5,6 +5,7 @@ import { OVWLayout } from '@/components/OVWLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users, Terminal, Megaphone, TrendingDown, Eye } from 'lucide-react';
+import { usePlayerStore } from '@/stores/player-store';
 import { cn } from '@/lib/utils';
 const FAKE_EVENTS = [
   "User_829 just lost 45,000 OVC on 'Monkey JPEG #4' flip.",
@@ -15,6 +16,10 @@ const FAKE_EVENTS = [
   "Player_XYZ survived Wave 4 in Quarantine. Payout: 12 OVC. Pathetic.",
   "TONK: 'The Vulture' just took another soul. Card counting detected... and ignored.",
   "NEW TITLE: 'Financial Black Hole' awarded to User_001.",
+  "Player hit jackpot... and lost it all in exactly 2 spins. Tragic.",
+  "Ignored cash out at +4 Luck in Gander Gallery... public execution by statistics.",
+  "3 glitches in a row for User_99... impressive level of systemic failure.",
+  "Transaction rejected: User conscience detected. Deducting fine.",
 ];
 const BILLBOARDS = [
   "LOW INTEREST LOANS! (Start at 800% APR)",
@@ -24,23 +29,45 @@ const BILLBOARDS = [
   "BUY THE DIP. IT'S DEFINITELY NOT A CRATER.",
 ];
 export function GlitchSquarePage() {
+  const player = usePlayerStore((s) => s.player);
+  const corruption = player?.corruption ?? 0;
+  const debt = player?.debt ?? 0;
   const [messages, setMessages] = useState<string[]>([]);
   const [onlineCount, setOnlineCount] = useState(42069);
   const [billboardIndex, setBillboardIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const interval = setInterval(() => {
+    const triggerMessage = () => {
       setMessages(prev => {
-        const next = [FAKE_EVENTS[Math.floor(Math.random() * FAKE_EVENTS.length)], ...prev];
-        return next.slice(0, 20);
+        let msg = FAKE_EVENTS[Math.floor(Math.random() * FAKE_EVENTS.length)];
+        // Occasional personalized callout
+        if (Math.random() < 0.3 && player) {
+          if (corruption > 50) msg = `SYSTEM WATCH: Corruption detected in Sector 0. Looking at you, ${player.name || 'User'}.`;
+          else if (debt > 5000) msg = `NOTICE: ${player.name || 'User'}'s debt profile has been sold to Sector 4 collection agents.`;
+        }
+        const next = [msg, ...prev];
+        return next.slice(0, 25);
       });
-      setOnlineCount(prev => prev + (Math.random() > 0.5 ? 1 : -1));
-    }, 3000);
+      // Randomized interval 10-30s
+      const nextInterval = Math.floor(Math.random() * 20000) + 10000;
+      setTimeout(triggerMessage, nextInterval);
+    };
+    const initialTimeout = setTimeout(triggerMessage, 2000);
+    const countInterval = setInterval(() => {
+      setOnlineCount(prev => {
+        const flicker = Math.random() > 0.8 ? (Math.random() > 0.5 ? 500 : -500) : (Math.random() > 0.5 ? 1 : -1);
+        return prev + flicker;
+      });
+    }, 1000);
     const bbInterval = setInterval(() => {
       setBillboardIndex(prev => (prev + 1) % BILLBOARDS.length);
     }, 5000);
-    return () => { clearInterval(interval); clearInterval(bbInterval); };
-  }, []);
+    return () => { 
+      clearTimeout(initialTimeout);
+      clearInterval(countInterval); 
+      clearInterval(bbInterval); 
+    };
+  }, [player, corruption, debt]);
   return (
     <OVWLayout>
       <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
@@ -50,7 +77,16 @@ export function GlitchSquarePage() {
           </h1>
           <div className="flex items-center justify-center gap-2 text-ov-green font-bold">
             <Users className="w-5 h-5 animate-pulse" />
-            <span className="text-xl tracking-tighter">{onlineCount.toLocaleString()} DEGENS ONLINE</span>
+            <span className="text-xl tracking-tighter">
+              <motion.span
+                key={onlineCount}
+                initial={{ opacity: 0.5 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.1 }}
+              >
+                {onlineCount.toLocaleString()}
+              </motion.span> DEGENS ONLINE
+            </span>
           </div>
         </div>
         <div className="grid lg:grid-cols-3 gap-8">
@@ -70,10 +106,10 @@ export function GlitchSquarePage() {
                       animate={{ opacity: 1, x: 0 }}
                       className={cn(
                         "flex gap-4 p-2 border-l-2",
-                        msg.includes("ALERT") || msg.includes("RUG") ? "border-red-500 text-red-400" : "border-ov-primary/20 text-ov-gray"
+                        msg.includes("ALERT") || msg.includes("RUG") || msg.includes("WATCH") ? "border-red-500 text-red-400" : "border-ov-primary/20 text-ov-gray"
                       )}
                     >
-                      <span className="opacity-30">[{new Date().toLocaleTimeString()}]</span>
+                      <span className="opacity-30">[{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
                       <span>{msg}</span>
                     </motion.div>
                   ))}
@@ -98,7 +134,6 @@ export function GlitchSquarePage() {
                   {BILLBOARDS[billboardIndex]}
                 </motion.p>
               </AnimatePresence>
-              <div className="absolute inset-0 bg-[url('/scanlines.png')] opacity-10 pointer-events-none" />
             </Card>
           </div>
           <div className="space-y-6">

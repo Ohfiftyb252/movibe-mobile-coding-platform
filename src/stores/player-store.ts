@@ -52,6 +52,7 @@ type PlayerState = {
   smashTerminal: () => void;
   checkDailyStatus: () => void;
   claimDailyBonus: () => void;
+  getLatestAchievement: () => string;
 };
 export const usePlayerStore = create<PlayerState>()(
   immer((set, get) => {
@@ -122,7 +123,7 @@ export const usePlayerStore = create<PlayerState>()(
         debouncedUpdate();
       },
       recordLoss: () => {
-        set((state) => { 
+        set((state) => {
           if (state.player) {
             state.player.consecutiveLosses += 1;
             state.player.title = calculateTitle(state.player);
@@ -161,7 +162,7 @@ export const usePlayerStore = create<PlayerState>()(
         debouncedUpdate();
       },
       incrementSpinsSinceBigWin: () => {
-        set((state) => { if (state.player) state.player.spinsSinceBigWin += 1; });
+        set((state) => { if (state.player) state.player.spinsSinceBigWin = (state.player.spinsSinceBigWin ?? 0) + 1; });
         debouncedUpdate();
       },
       resetSpinsSinceBigWin: () => {
@@ -218,6 +219,14 @@ export const usePlayerStore = create<PlayerState>()(
           toast.success("DAILY CORRUPTION BONUS", { description: `+${bonus} OVC. Spend it before your conscience returns.` });
           debouncedUpdate();
         }
+      },
+      getLatestAchievement: () => {
+        const p = get().player;
+        if (!p) return "Fresh Meat";
+        if (p.debt > 50000) return "Financial Ruin Expert";
+        if (p.corruption > 70) return "Glitch Architect";
+        if (p.consecutiveLosses > 5) return "Preferred Donor";
+        return p.title;
       }
     };
   })

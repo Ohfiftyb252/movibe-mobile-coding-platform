@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Coins, Package, Flame, Clover, Skull, AlertCircle, Zap, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TiltedOverlay } from '@/components/TiltedOverlay';
-import { toast } from 'sonner';
+import { SatiricalTicker } from '@/components/SatiricalTicker';
 const DEBT_ROASTS = [
   "The House owns your soul. And your left shoe.",
   "Your credit score is currently 'Nuclear Winter'.",
@@ -116,14 +116,17 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
   const loadPlayer = usePlayerStore((s) => s.loadPlayer);
   const checkDailyStatus = usePlayerStore((s) => s.checkDailyStatus);
   const player = usePlayerStore((s) => s.player);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const playerId = player?.id;
+  const hasCheckedDaily = useRef(false);
   useEffect(() => {
     loadPlayer('PLAYER_ONE');
   }, [loadPlayer]);
   useEffect(() => {
-    if (player) checkDailyStatus();
-  }, [player?.id]);
+    if (playerId && !hasCheckedDaily.current) {
+      checkDailyStatus();
+      hasCheckedDaily.current = true;
+    }
+  }, [playerId, checkDailyStatus]);
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -141,16 +144,17 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 pointer-events-none z-[101] vignette opacity-50"></div>
       {isTilted && <TiltedOverlay intensity={losses} />}
       <header className={cn(
-        "fixed top-0 left-0 right-0 z-[60] p-4 backdrop-blur-2xl bg-ov-dark/80 border-b border-ov-primary/20 transition-all",
+        "fixed top-0 left-0 right-0 z-[60] backdrop-blur-2xl bg-ov-dark/80 border-b border-ov-primary/20 transition-all",
         corruption > 85 && "border-ov-primary shadow-2xl shadow-ov-primary/20"
       )}>
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+        <SatiricalTicker />
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <Link to="/" className="font-display text-2xl md:text-3xl uppercase glitch-text" data-text="O.V.W">O.V.W</Link>
           <PlayerStats />
         </div>
       </header>
       <main className={cn("max-w-7xl mx-auto px-4 transition-all duration-500", isTilted && "filter sepia-[0.3] hue-rotate-[340deg]")}>
-        <div className="py-8 pt-28 md:pt-36 lg:pt-40 min-h-screen">
+        <div className="py-8 pt-32 md:pt-40 lg:pt-44 min-h-screen">
           {children}
         </div>
       </main>
