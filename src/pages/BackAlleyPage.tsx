@@ -5,7 +5,7 @@ import { OVWLayout } from '@/components/OVWLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Coins, Skull, AlertTriangle, Flame, Ghost, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Coins, Skull, AlertTriangle, Flame, HelpCircle } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -27,12 +27,15 @@ const Coin = ({ isFlipping, result, heat }: { isFlipping: boolean; result: 'head
       <motion.div
         className="w-full h-full relative preserve-3d"
         animate={{
-          rotateY: isFlipping ? 1800 : (result === 'tails' ? 180 : 0),
+          // Use keyframes for a mechanical stutter effect instead of a custom string easing
+          rotateY: isFlipping 
+            ? [0, 500, 480, 1000, 980, 1500, 1480, 1800] 
+            : (result === 'tails' ? 180 : 0),
           scale: isFlipping ? 1.15 : 1
         }}
-        transition={{ 
-          duration: 1.8, 
-          ease: isFlipping ? "rigged-stutter" : "circOut" 
+        transition={{
+          duration: isFlipping ? 1.8 : 0.6,
+          ease: "easeInOut"
         }}
       >
         {/* Front: HEADS */}
@@ -88,10 +91,8 @@ export function BackAlleyPage() {
     addHeat(isFixed ? 30 : 5);
     setTimeout(() => {
       if (!mounted.current) return;
-      // Rigged Logic: "Heads" win rate is low, but "Also Heads" (tails) is a guaranteed loss for a "Heads" bet
-      const winChance = isFixed ? 0.05 : 0.38; 
+      const winChance = isFixed ? 0.05 : 0.38;
       const playerWins = Math.random() < winChance;
-      // If player chooses heads, 'tails' result means they see "Also Heads" (the glitched side)
       const flipResult = playerWins ? choice : (choice === 'heads' ? 'tails' : 'heads');
       setCoinResult(flipResult);
       setIsFlipping(false);
@@ -109,7 +110,7 @@ export function BackAlleyPage() {
         recordLoss();
         recordRegret();
       }
-    }, 1900);
+    }, 1900); // Synchronized with 1.8s duration + padding
   };
   const heat = player?.heat ?? 0;
   const isTilted = (player?.consecutiveLosses ?? 0) >= 5;

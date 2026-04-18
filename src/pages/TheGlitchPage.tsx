@@ -52,7 +52,6 @@ export function TheGlitchPage() {
   const [gameResult, setGameResult] = useState<'win' | 'loss' | 'near-miss' | null>(null);
   const [showTrap, setShowTrap] = useState(false);
   const [lastTrapResult, setLastTrapResult] = useState<boolean | null>(null);
-  // Derived state for the UI components
   const isTension = useMemo(() => {
     return isSpinning && reels[0] === reels[1] && reels[0] !== 2;
   }, [isSpinning, reels]);
@@ -122,7 +121,6 @@ export function TheGlitchPage() {
       } else if (outcome === 'glitch') {
         newReels = [3, 3, 3];
       }
-      // Calculate tension locally to determine timeout
       const targetIsTension = newReels[0] === newReels[1] && newReels[0] !== 2;
       setReels(newReels);
       if (outcome === 'glitch') {
@@ -142,8 +140,9 @@ export function TheGlitchPage() {
           toast.error("DOPAMINE CRASH", { description: "The house always takes what it 'accidentally' gave." });
         }, 1500);
       } else {
-        // Logic Timeout synchronized with SlotReel's 'stop' transition duration
-        const stopTimeout = targetIsTension ? 1500 : 800;
+        // Sync stopTimeout with SlotReel transition durations
+        // Tension: 2.5s duration. Non-tension: 1.5s duration.
+        const stopTimeout = targetIsTension ? 2600 : 1700;
         setTimeout(() => {
           if (!mounted.current) return;
           setIsSpinning(false);
@@ -204,14 +203,14 @@ export function TheGlitchPage() {
                 <SlotReel symbols={SYMBOLS} finalIndex={reels[2]} isSpinning={isSpinning} delay={0.4} tension={isTension} isGlitching={isFakeOut} />
                 <AnimatePresence>
                   {showTrap && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0 }} 
-                      animate={{ opacity: 1, scale: 1 }} 
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0 }}
                       className="absolute -right-4 top-0 z-50"
                     >
-                      <Button 
-                        onClick={handleTrap} 
+                      <Button
+                        onClick={handleTrap}
                         className="rounded-full w-16 h-16 bg-ov-green border-4 border-black text-black hover:scale-110 shadow-[0_0_20px_rgba(0,255,156,0.8)]"
                       >
                         <ExternalLink />

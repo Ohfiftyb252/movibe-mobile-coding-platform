@@ -9,7 +9,7 @@ interface SlotReelProps {
   isGlitching?: boolean;
 }
 export function SlotReel({ symbols, finalIndex, isSpinning, delay, tension = false, isGlitching = false }: SlotReelProps) {
-  const symbolHeight = 112; 
+  const symbolHeight = 112;
   const totalHeight = symbols.length * symbolHeight;
   const spinVariants: Variants = {
     start: {
@@ -26,7 +26,7 @@ export function SlotReel({ symbols, finalIndex, isSpinning, delay, tension = fal
       y: -custom.finalIndex * symbolHeight + (custom.glitch ? 10 : 0),
       transition: {
         y: {
-          duration: tension ? 2.5 : 1.2 + delay,
+          duration: tension ? 2.5 : 1.5 + delay, // Weighted feel for normal stops
           ease: [0.34, 1.56, 0.64, 1],
         },
       },
