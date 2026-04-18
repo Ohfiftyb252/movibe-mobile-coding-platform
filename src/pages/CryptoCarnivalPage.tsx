@@ -36,6 +36,8 @@ export function CryptoCarnivalPage() {
     if (!player || !betAmount || betAmount <= 0) return;
     setIsRugPull(false);
     increaseCorruption(2);
+    // Deduct bet immediately
+    setOvCoin(player.ovCoin - Number(betAmount));
     const d = shuffleDeck(createDeck());
     if ((player.luck ?? 50) > 70 && Math.random() < 0.3) {
       const highCardIndex = d.findIndex(c => ['10', 'J', 'Q', 'K', 'A'].includes(c.rank));
@@ -56,43 +58,45 @@ export function CryptoCarnivalPage() {
     if (!mounted.current) return;
     setGameState('finished');
     const bet = Number(betAmount);
-    if (!player) return;
-    const rugPullChance = 0.05 + ((100 - (player.luck ?? 50)) / 500);
+    const freshPlayer = usePlayerStore.getState().player;
+    if (!freshPlayer) return;
+    const rugPullChance = 0.05 + ((100 - (freshPlayer.luck ?? 50)) / 500);
     const isActuallyWinning = ['player_win', 'player_blackjack', 'dealer_bust'].includes(result);
     const rugTriggered = isActuallyWinning && Math.random() < rugPullChance;
     if (rugTriggered) {
       setIsRugPull(true);
       setFeedback("RUG PULL! LIQUIDITY DRAINED");
-      setOvCoin(player.ovCoin - bet - 50);
+      // Already deducted bet, now drain more
+      setOvCoin(freshPlayer.ovCoin - 50);
       adjustLuck(-5);
       recordLoss();
       toast.error("RUG PULL ALERT!", { description: "Your profits were liquidated for 'Gas Fees'." });
       return;
     }
-    const base = player.ovCoin;
+    const base = freshPlayer.ovCoin;
     switch (result) {
       case 'player_blackjack':
-        setFeedback(`MOONED! +${(bet * 1.5).toLocaleString()}`);
-        setOvCoin(base + bet * 1.5);
+        setFeedback(`MOONED! +${(bet * 2.5).toLocaleString()}`);
+        setOvCoin(base + bet * 2.5); // Return original stake + 1.5 profit
         resetLosses();
         adjustLuck(2);
         break;
       case 'player_win':
       case 'dealer_bust':
-        setFeedback(`PROFIT SECURED! +${bet.toLocaleString()}`);
-        setOvCoin(base + bet);
+        setFeedback(`PROFIT SECURED! +${(bet * 2).toLocaleString()}`);
+        setOvCoin(base + bet * 2); // Return original stake + profit
         resetLosses();
         adjustLuck(1);
         break;
       case 'push':
         setFeedback('FLAT LINE. STAKE RETURNED.');
-        setOvCoin(base);
+        setOvCoin(base + bet); // Return original stake
         break;
       case 'player_bust':
       case 'dealer_win':
       default:
         setFeedback(`LIQUIDATED! -${bet.toLocaleString()}`);
-        setOvCoin(base - bet);
+        // Bet already deducted, nothing to add back
         recordLoss();
         adjustLuck(-1);
         break;

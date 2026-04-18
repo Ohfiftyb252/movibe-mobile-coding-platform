@@ -36,10 +36,7 @@ export function ZombieOutbreakPage() {
     };
   }, []);
   const startGame = () => {
-    if (!player || player.ovCoin < COST_PER_GAME) {
-      toast.error(`You need ${COST_PER_GAME} O.V. Coin to play.`);
-      return;
-    }
+    if (!player) return;
     setOvCoin(player.ovCoin - COST_PER_GAME);
     setScore(0);
     setWave(1);
@@ -56,22 +53,19 @@ export function ZombieOutbreakPage() {
     setZombies(prev => prev.filter(z => z.id !== id));
     setLives(prev => prev - 1);
   }, []);
-  // Spawn Effect
   useEffect(() => {
     if (gameState !== 'playing' || isSpawning.current) return;
     isSpawning.current = true;
     const zombiesToSpawn = wave * 2 + 3;
-    const newHorde = Array.from({ length: zombiesToSpawn }, (_, i) => 
+    const newHorde = Array.from({ length: zombiesToSpawn }, (_, i) =>
       createZombie(Date.now() + i + (wave * 1000), wave)
     );
     setZombies(newHorde);
     toast.info(`WAVE ${wave} STARTING...`);
-    // Clear lock after a delay to ensure state propagation
     setTimeout(() => {
       isSpawning.current = false;
     }, 500);
   }, [gameState, wave, createZombie]);
-  // Next Wave Trigger
   useEffect(() => {
     if (gameState === 'playing' && zombies.length === 0 && !isSpawning.current) {
       const timer = setTimeout(() => {
@@ -80,20 +74,21 @@ export function ZombieOutbreakPage() {
       return () => clearTimeout(timer);
     }
   }, [zombies.length, gameState]);
-  // End Game Check
   useEffect(() => {
     if (lives <= 0 && gameState === 'playing') {
+      const freshPlayer = usePlayerStore.getState().player;
+      if (!freshPlayer) return;
       setGameState('finished');
       const winnings = score * 5;
-      if (winnings > 0 && player) {
-        toast.success(`DEFEATED. Killed ${score} zombies. Earned ${winnings} O.V. Coin.`);
-        setOvCoin(player.ovCoin + winnings);
+      if (winnings > 0) {
+        toast.success(`DEFEATED. Killed ${score} zombies. Earned ${winnings} O.V.C.`);
+        setOvCoin(freshPlayer.ovCoin + winnings);
       } else {
         toast.error(`THE HORDE HAS CONSUMED YOU.`);
       }
       setZombies([]);
     }
-  }, [lives, gameState, score, player, setOvCoin]);
+  }, [lives, gameState, score]);
   return (
     <OVWLayout>
       <div className="text-center animate-fade-in relative z-10 pointer-events-none">
@@ -106,18 +101,18 @@ export function ZombieOutbreakPage() {
       </div>
       <div id="game-area" className="fixed inset-0 w-screen h-screen overflow-hidden bg-gray-900/40 cursor-crosshair">
         {zombies.map(zombie => (
-          <Zombie 
-            key={zombie.id} 
-            {...zombie} 
-            onShoot={handleShoot} 
-            onEscape={handleEscape} 
+          <Zombie
+            key={zombie.id}
+            {...zombie}
+            onShoot={handleShoot}
+            onEscape={handleEscape}
           />
         ))}
       </div>
       <div className="relative z-30 mt-8 flex flex-col items-center">
         {gameState === 'idle' && (
           <Button size="lg" onClick={startGame} className="animate-pulse bg-red-600 hover:bg-red-700 text-white">
-            Pay {COST_PER_GAME} O.V. Coin to Enter
+            Enter The Zone (100 O.V.C)
           </Button>
         )}
         {gameState === 'playing' && (

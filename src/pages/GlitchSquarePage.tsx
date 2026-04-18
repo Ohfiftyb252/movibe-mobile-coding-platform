@@ -26,6 +26,12 @@ const CATEGORIES = {
     "MISSED OPPORTUNITY: Jackpot trap was right there. You lacked the greed to click.",
     "REGRET: User cashed out at +1. Machine immediately rolled a Triple 7. Tragic.",
     "SYSTEM TAUNT: That '7' you saw? It was real. You just weren't the chosen one."
+  ],
+  SYSTEM_WHISPER: [
+    "WHISPER: Reality stability at 12%. Please refrain from thinking about your losses.",
+    "SYSTEM: Current social reputation 'Fresh Meat' detected. Increasing taunt frequency.",
+    "WHISPER: The machine misses your touch. Don't leave it lonely.",
+    "WHISPER: Your debt is your legacy. Make it legendary."
   ]
 };
 const BILLBOARDS = [
@@ -45,11 +51,10 @@ export function GlitchSquarePage() {
   const [onlineCount, setOnlineCount] = useState(42069);
   const [billboardIndex, setBillboardIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Keep stats in a ref to avoid effect loop resets when coins change in background
-  const statsRef = useRef({ debt, corruption, regrets, name: player?.name });
+  const statsRef = useRef({ debt, corruption, regrets, name: player?.name, title });
   useEffect(() => {
-    statsRef.current = { debt, corruption, regrets, name: player?.name };
-  }, [debt, corruption, regrets, player?.name]);
+    statsRef.current = { debt, corruption, regrets, name: player?.name, title };
+  }, [debt, corruption, regrets, player?.name, title]);
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
     const triggerMessage = () => {
@@ -57,26 +62,25 @@ export function GlitchSquarePage() {
         const types = Object.keys(CATEGORIES);
         const selectedType = types[Math.floor(Math.random() * types.length)] as keyof typeof CATEGORIES;
         let msg = CATEGORIES[selectedType][Math.floor(Math.random() * CATEGORIES[selectedType].length)];
-        // Personalization using Ref data
         const stats = statsRef.current;
-        if (Math.random() < 0.3) {
-          if (stats.regrets > 5 && Math.random() < 0.3) {
-            msg = `REGRET ALERT: ${stats.name || 'User'} is officially a 'Regret Magnet' with ${stats.regrets} missed opportunities.`;
-          } else if (stats.debt > 10000 && Math.random() < 0.3) {
-            msg = `DEBT WATCH: ${stats.name || 'User'}'s soul is now 45% owned by O.V. Corp.`;
-          } else if (stats.corruption > 80 && Math.random() < 0.3) {
-            msg = `SYSTEM WARNING: ${stats.name || 'User'} is causing reality leaks. Termination scheduled.`;
+        if (Math.random() < 0.35) {
+          if (stats.regrets > 5 && Math.random() < 0.4) {
+            msg = `REGRET ALERT: ${stats.name || 'User'} (${stats.title}) is officially a 'Regret Magnet' with ${stats.regrets} missed opportunities.`;
+          } else if (stats.debt > 20000 && Math.random() < 0.4) {
+            msg = `DEBT WATCH: ${stats.name || 'User'}'s soul is now 65% owned by O.V. Corp. Debt: ${stats.debt.toLocaleString()}.`;
+          } else if (stats.corruption > 85 && Math.random() < 0.4) {
+            msg = `SYSTEM WARNING: ${stats.name || 'User'} is leaking corruption into the feed. Termination recommended.`;
           }
         }
-        return [msg, ...prev].slice(0, 30);
+        return [msg, ...prev].slice(0, 40);
       });
-      const nextInterval = Math.floor(Math.random() * 8000) + 2000;
+      const nextInterval = Math.floor(Math.random() * 6000) + 1000;
       timeoutId = setTimeout(triggerMessage, nextInterval);
     };
     triggerMessage();
     const countInterval = setInterval(() => {
-      setOnlineCount(p => p + (Math.random() > 0.5 ? Math.floor(Math.random() * 5) : -Math.floor(Math.random() * 5)));
-    }, 2000);
+      setOnlineCount(p => p + (Math.random() > 0.5 ? Math.floor(Math.random() * 8) : -Math.floor(Math.random() * 8)));
+    }, 2500);
     const bbInterval = setInterval(() => {
       setBillboardIndex(prev => (prev + 1) % BILLBOARDS.length);
     }, 5000);
@@ -85,7 +89,7 @@ export function GlitchSquarePage() {
       clearInterval(countInterval);
       clearInterval(bbInterval);
     };
-  }, []); // Only on mount
+  }, []);
   const publicShame = Math.min(100, (debt / 500) + (corruption / 2));
   const degenTier = debt > 50000 ? "Systemic Error" : debt > 10000 ? "Liquidity Provider" : "Statistic in Waiting";
   return (
@@ -108,15 +112,15 @@ export function GlitchSquarePage() {
               <div className="absolute inset-0 scanline opacity-10 pointer-events-none" />
               <CardHeader className="border-b border-ov-primary/20 py-4 bg-ov-primary/5 backdrop-blur-md">
                 <CardTitle className="text-sm uppercase tracking-[0.3em] text-ov-primary flex items-center gap-3">
-                  <Terminal className="w-5 h-5" /> LIVE_TRAGEDY_FEED_V4.0
+                  <Terminal className="w-5 h-5" /> LIVE_TRAGEDY_FEED_V5.0
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 overflow-y-auto font-mono text-sm p-8 space-y-4 scroll-smooth" ref={scrollRef}>
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => {
                     const isSpike = msg.includes("JACKPOT") || msg.includes("DOPAMINE") || msg.includes("WINNER");
-                    const isCrash = msg.includes("LIQUIDATION") || msg.includes("RUG") || msg.includes("DEBT");
-                    const isRegret = msg.includes("REGRET") || msg.includes("OPPORTUNITY") || msg.includes("TAUNT");
+                    const isCrash = msg.includes("LIQUIDATION") || msg.includes("RUG") || msg.includes("DEBT") || msg.includes("WARNING");
+                    const isRegret = msg.includes("REGRET") || msg.includes("OPPORTUNITY") || msg.includes("TAUNT") || msg.includes("WHISPER");
                     return (
                       <motion.div
                         key={i + msg}

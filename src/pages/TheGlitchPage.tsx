@@ -21,6 +21,7 @@ const SYMBOLS = [
 const PAYOUTS: { [key: number]: number } = {
   0: 5,   // 3 Bots
   1: 10,  // 3 Gems
+  2: 0.1, // 3 Skulls (Death Tax)
   3: 50,  // 3 Sevens (Jackpot)
   4: 3,   // 3 Coins
 };
@@ -68,13 +69,12 @@ export function TheGlitchPage() {
     if (isSpinning || !player) return;
     const bet = Number(betAmount);
     if (!bet || bet <= 0) { toast.error("INVALID INPUT"); return; }
-    if (bet > currentOvCoin) { toast.error("INSUFFICIENT LIQUIDITY"); return; }
-    const hadTrapBonus = lastTrapResult === true;
     setIsSpinning(true);
     setIsFakeOut(false);
     setGameResult(null);
     setShowTrap(false);
     setFeedback('PROCESSING DESPAIR...');
+    // Deduct immediately to support Pity Party trigger
     setOvCoin(currentOvCoin - bet);
     increaseCorruption(1);
     addHeat(1);
@@ -140,9 +140,8 @@ export function TheGlitchPage() {
           toast.error("DOPAMINE CRASH", { description: "The house always takes what it 'accidentally' gave." });
         }, 1500);
       } else {
-        // Sync stopTimeout with SlotReel transition durations
-        // Tension: 2.5s duration. Non-tension: 1.5s duration.
-        const stopTimeout = targetIsTension ? 2600 : 1700;
+        // Aligned with SlotReel transition: tension 2.5s, normal 1.5s + padding
+        const stopTimeout = targetIsTension ? 3100 : 2100;
         setTimeout(() => {
           if (!mounted.current) return;
           setIsSpinning(false);
@@ -151,7 +150,7 @@ export function TheGlitchPage() {
             const winnings = bet * mult;
             setGameResult('win');
             setFeedback(`OUTLIER DETECTED! +${winnings.toLocaleString()}`);
-            setOvCoin(currentOvCoin + winnings);
+            setOvCoin(get().player!.ovCoin + winnings); // Recalculate based on post-bet balance
             resetLosses();
             if (outcome === 'big') resetSpinsSinceBigWin();
             adjustLuck(-10);

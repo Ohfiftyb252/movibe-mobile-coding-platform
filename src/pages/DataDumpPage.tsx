@@ -50,6 +50,8 @@ export function DataDumpPage() {
     setGameResult(null);
     setFeedback('PLAYER ROLLING...');
     increaseCorruption(2);
+    // Deduct immediately
+    setOvCoin(player.ovCoin - bet);
     setTimeout(() => {
       if (!mounted.current) return;
       let pRoll = rollDice();
@@ -57,27 +59,42 @@ export function DataDumpPage() {
       while (pRes.outcome === 'reroll') { pRoll = rollDice(); pRes = getCeeLoResult(pRoll); }
       setDice(pRoll);
       setFeedback(pRes.message);
+      const freshPlayer = usePlayerStore.getState().player;
+      if (!freshPlayer) return;
       if (pRes.outcome === 'win') {
-        setGameResult('win'); setOvCoin(player.ovCoin + bet); resetLosses(); setIsRolling(false);
+        setGameResult('win'); 
+        setOvCoin(freshPlayer.ovCoin + (bet * 2)); 
+        resetLosses(); 
+        setIsRolling(false);
       } else if (pRes.outcome === 'loss') {
-        setGameResult('loss'); setOvCoin(player.ovCoin - bet); recordLoss(); setIsRolling(false);
+        setGameResult('loss'); 
+        // Bet already deducted
+        recordLoss(); 
+        setIsRolling(false);
       } else {
         setFeedback(`${pRes.message}. HOUSE ROLLING...`);
         setTimeout(() => {
           if (!mounted.current) return;
           let hRoll = rollDice();
           let hRes = getCeeLoResult(hRoll);
-          const houseAggression = (player.corruption / 20);
+          const houseAggression = (freshPlayer.corruption / 20);
           for(let i=0; i<houseAggression; i++) {
             if (hRes.outcome === 'reroll' || (hRes.outcome === 'point' && hRes.value < pRes.value)) {
               hRoll = rollDice(); hRes = getCeeLoResult(hRoll);
             }
           }
           setDice(hRoll);
+          const postDealerPlayer = usePlayerStore.getState().player;
+          if (!postDealerPlayer) return;
           if (hRes.outcome === 'win' || (hRes.outcome === 'point' && hRes.value > pRes.value)) {
-            setGameResult('loss'); setFeedback(`HOUSE: ${hRes.message}. LOSS.`); setOvCoin(player.ovCoin - bet); recordLoss();
+            setGameResult('loss'); 
+            setFeedback(`HOUSE: ${hRes.message}. LOSS.`); 
+            recordLoss();
           } else {
-            setGameResult('win'); setFeedback(`HOUSE: ${hRes.message}. WIN!`); setOvCoin(player.ovCoin + bet); resetLosses();
+            setGameResult('win'); 
+            setFeedback(`HOUSE: ${hRes.message}. WIN!`); 
+            setOvCoin(postDealerPlayer.ovCoin + (bet * 2)); 
+            resetLosses();
           }
           setIsRolling(false);
         }, 1500);

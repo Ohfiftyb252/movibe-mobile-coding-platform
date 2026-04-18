@@ -82,7 +82,7 @@ export const usePlayerStore = create<PlayerState>()(
       } catch (error) {
         console.error("Persistence failed:", error);
       }
-    }, 1000);
+    }, 800);
     return {
       player: null,
       isLoading: true,
@@ -112,15 +112,16 @@ export const usePlayerStore = create<PlayerState>()(
       setOvCoin: (amount) => {
         set((state) => {
           if (!state.player) return;
-          if (amount < 0) {
-            state.player.debt += Math.abs(amount);
-            state.player.ovCoin = 0;
-            toast.error("SYSTEM DEFICIT", { description: "Debt accrued. Organ value recalculated." });
-          } else if (amount === 0 && state.player.ovCoin > 0) {
+          if (amount <= 0) {
+            const deficit = Math.abs(amount);
+            state.player.debt += (deficit + 500);
             state.player.ovCoin = 500;
-            state.player.debt += 500;
-            if (!state.player.inventory.hats.includes("Pity Party")) state.player.inventory.hats.push("Pity Party");
-            toast.info("PITY PARTY", { description: "You're broke. Here's 500 OVC (on credit)." });
+            if (!state.player.inventory.hats.includes("Pity Party")) {
+              state.player.inventory.hats.push("Pity Party");
+            }
+            toast.error("SYSTEM DEFICIT", { 
+              description: `Debt accrued: ${deficit.toLocaleString()}. Here's 500 OVC on credit. Welcome back.` 
+            });
           } else {
             state.player.ovCoin = amount;
           }
@@ -182,6 +183,7 @@ export const usePlayerStore = create<PlayerState>()(
             if (Math.random() < 0.1) {
               state.player.ovCoin = 0;
               state.player.heat += 50;
+              state.player.debt += 1000;
               toast.error("SECURITY LOCKOUT", { description: "Biometrics wiped. Fees deducted." });
             } else {
               state.player.ovCoin += reward;

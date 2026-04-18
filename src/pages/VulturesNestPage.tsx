@@ -30,10 +30,12 @@ export function VulturesNestPage() {
   const opponentState = gameState?.players['opponent'];
   const isPlayerTurn = gameState?.currentPlayerId === 'player';
   const startNewGame = () => {
-    if (!player || betAmount <= 0 || betAmount > player.ovCoin) {
+    if (!player || betAmount <= 0) {
       toast.error("Invalid bet.");
       return;
     }
+    // Deduct bet immediately
+    setOvCoin(player.ovCoin - betAmount);
     const deck = shuffleDeck(Tonk.createTonkDeck());
     const { players, remainingDeck } = Tonk.dealHands(deck, ['player', 'opponent']);
     const discardPile = [remainingDeck.pop()!];
@@ -113,15 +115,17 @@ export function VulturesNestPage() {
     if (!isPlayerTurn || !gameState || !playerState || !opponentState || gameState.turnPhase !== 'play') return;
     const pVal = Tonk.getHandValue(playerState.hand);
     const oVal = Tonk.getHandValue(opponentState.hand);
+    const freshPlayer = usePlayerStore.getState().player;
+    if (!freshPlayer) return;
     setGameStage('finished');
     if (pVal < oVal) {
       setGameState(prev => prev ? { ...prev, winner: 'player' } : null);
-      setOvCoin((player?.ovCoin ?? 0) + betAmount);
+      setOvCoin(freshPlayer.ovCoin + (betAmount * 2));
       resetLosses();
       toast.success("KNOCK SUCCESS! You win.");
     } else {
       setGameState(prev => prev ? { ...prev, winner: 'opponent' } : null);
-      setOvCoin((player?.ovCoin ?? 0) - betAmount);
+      // Bet already deducted, nothing to add
       recordLoss();
       toast.error("KNOCK FAILED! House wins.");
     }
@@ -148,16 +152,17 @@ export function VulturesNestPage() {
   }, [gameState?.currentPlayerId, gameState?.winner]);
   useEffect(() => {
     if (gameState?.winner && gameStage === 'playing') {
+      const freshPlayer = usePlayerStore.getState().player;
+      if (!freshPlayer) return;
       setGameStage('finished');
       if (gameState.winner === 'opponent') {
-        setOvCoin((player?.ovCoin ?? 0) - betAmount);
         recordLoss();
       } else {
-        setOvCoin((player?.ovCoin ?? 0) + betAmount);
+        setOvCoin(freshPlayer.ovCoin + (betAmount * 2));
         resetLosses();
       }
     }
-  }, [gameState?.winner, gameStage, betAmount, player?.ovCoin, setOvCoin, recordLoss, resetLosses]);
+  }, [gameState?.winner, gameStage, betAmount]);
   return (
     <OVWLayout>
       <div className="text-center animate-fade-in mb-8">

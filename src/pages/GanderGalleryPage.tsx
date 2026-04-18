@@ -18,7 +18,7 @@ interface DuckInfo {
 }
 const COST_PER_GAME = 50;
 const DUCKS_PER_ROUND = 5;
-const ROUND_TIME = 10; // seconds
+const ROUND_TIME = 10;
 export function GanderGalleryPage() {
   const player = usePlayerStore((s) => s.player);
   const setOvCoin = usePlayerStore((s) => s.setOvCoin);
@@ -32,15 +32,12 @@ export function GanderGalleryPage() {
       id,
       initialX: direction === 'right' ? -100 : window.innerWidth + 100,
       initialY: Math.random() * (window.innerHeight * 0.6),
-      duration: Math.random() * 3 + 4, // 4-7 seconds
+      duration: Math.random() * 3 + 4,
       direction,
     };
   };
   const startGame = () => {
-    if (!player || player.ovCoin < COST_PER_GAME) {
-      toast.error(`You need ${COST_PER_GAME} O.V. Coin to play.`);
-      return;
-    }
+    if (!player) return;
     setOvCoin(player.ovCoin - COST_PER_GAME);
     setScore(0);
     setTimeLeft(ROUND_TIME);
@@ -53,16 +50,18 @@ export function GanderGalleryPage() {
     setDucks(prev => prev.filter(d => d.id !== id));
     setTimeout(() => {
       setDucks(prev => [...prev, createDuck(Date.now())]);
-    }, 500); // Spawn a new duck after a delay
+    }, 500);
   }, []);
   useEffect(() => {
     if (gameState !== 'playing') return;
     if (timeLeft <= 0) {
       setGameState('finished');
-      const winnings = score * 15; // 15 coins per duck
-      if (winnings > 0 && player) {
-        toast.success(`Time's up! You shot ${score} ducks and won ${winnings} O.V. Coin!`);
-        setOvCoin(player.ovCoin - COST_PER_GAME + winnings);
+      const freshPlayer = usePlayerStore.getState().player;
+      if (!freshPlayer) return;
+      const winnings = score * 15;
+      if (winnings > 0) {
+        toast.success(`Time's up! You shot ${score} ducks and won ${winnings} O.V.C!`);
+        setOvCoin(freshPlayer.ovCoin + winnings);
       } else {
         toast.info(`Time's up! You shot ${score} ducks. Better luck next time.`);
       }
@@ -73,7 +72,7 @@ export function GanderGalleryPage() {
       setTimeLeft(prev => prev - 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [gameState, timeLeft, score, player, setOvCoin]);
+  }, [gameState, timeLeft, score]);
   return (
     <OVWLayout>
       <div className="text-center animate-fade-in relative z-10">
@@ -81,21 +80,19 @@ export function GanderGalleryPage() {
           The Glitchy Gander Gallery
         </h1>
         <p className="mt-4 text-lg text-ov-gray max-w-xl mx-auto">
-          It costs 50 O.V. Coin to play. Each duck is worth 15. Don't miss.
+          Pay 50. Each duck is worth 15. Don't miss.
         </p>
       </div>
       <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-blue-900/50 cursor-crosshair">
-        {/* Game Area */}
         {ducks.map(duck => (
           <Duck key={duck.id} {...duck} onShoot={handleShoot} />
         ))}
-        {/* Foreground Grass */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-green-800/70 z-20" />
       </div>
       <div className="relative z-30 mt-8 flex flex-col items-center">
         {gameState === 'idle' && (
           <Button size="lg" onClick={startGame} className="animate-pulse">
-            Pay {COST_PER_GAME} O.V. Coin to Start
+            Start Gallery (50 O.V.C)
           </Button>
         )}
         {gameState === 'playing' && (
@@ -120,8 +117,8 @@ export function GanderGalleryPage() {
                   <CardHeader><CardTitle className="text-ov-primary">Game Over</CardTitle></CardHeader>
                   <CardContent>
                     <p className="text-2xl">Final Score: {score}</p>
-                    <p className="text-lg text-ov-green">Winnings: {(score * 15).toLocaleString()} O.V. Coin</p>
-                    <Button onClick={startGame} className="mt-4">Play Again (50 O.V. Coin)</Button>
+                    <p className="text-lg text-ov-green">Winnings: {(score * 15).toLocaleString()} O.V.C</p>
+                    <Button onClick={startGame} className="mt-4">Play Again (50 O.V.C)</Button>
                   </CardContent>
                 </Card>
               </motion.div>

@@ -78,14 +78,12 @@ export function BackAlleyPage() {
     if (isFlipping || !player) return;
     const bet = Number(betAmount);
     if (!bet || bet <= 0) return;
-    if (bet > player.ovCoin) {
-      toast.error("INSUFFICIENT LIQUIDITY", { description: "You can't even afford to lose." });
-      return;
-    }
     setIsFlipping(true);
     setGameResult(null);
     setFeedback('MANIPULATING PROBABILITY...');
-    // 20% natural glitch chance, 100% if rigged
+    // Deduct bet immediately
+    const currentBalance = player.ovCoin;
+    setOvCoin(currentBalance - bet);
     const midAirGlitchTrigger = isFixed || Math.random() < 0.2;
     setIsGlitching(midAirGlitchTrigger);
     increaseCorruption(1);
@@ -100,23 +98,24 @@ export function BackAlleyPage() {
       setIsGlitching(false);
       const processResult = () => {
         if (!mounted.current) return;
+        const freshPlayer = usePlayerStore.getState().player;
+        if (!freshPlayer) return;
         if (playerWins) {
           const mult = isFixed ? 6 : 2;
           const winnings = bet * mult;
           setGameResult('win');
           setFeedback("HUH… LUCKY.");
-          setOvCoin(player.ovCoin - bet + winnings);
+          setOvCoin(freshPlayer.ovCoin + winnings);
           resetLosses();
         } else {
           setGameResult('loss');
           const lossFeedback = Math.random() < 0.3 ? "IT LANDED EXACTLY HOW IT WAS SUPPOSED TO." : "TOUGH BREAK.";
           setFeedback(lossFeedback);
-          setOvCoin(player.ovCoin - bet);
+          // Bet already deducted, just record loss stats
           recordLoss();
           recordRegret();
         }
       };
-      // Differentiated timing: Wins delay reveal for tension, Losses snap instantly
       if (playerWins) {
         setTimeout(processResult, 600);
       } else {
