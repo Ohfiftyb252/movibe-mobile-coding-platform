@@ -15,6 +15,7 @@ interface DuckInfo {
   initialY: number;
   duration: number;
   direction: 'left' | 'right';
+  health: number;
 }
 const COST_PER_GAME = 50;
 const DUCKS_PER_ROUND = 5;
@@ -34,10 +35,11 @@ export function GanderGalleryPage() {
       initialY: Math.random() * (window.innerHeight * 0.6),
       duration: Math.random() * 3 + 4,
       direction,
+      health: 3,
     };
   };
   const startGame = () => {
-    if (!player) return;
+    if (!player || player.ovCoin < COST_PER_GAME) return;
     setOvCoin(player.ovCoin - COST_PER_GAME);
     setScore(0);
     setTimeLeft(ROUND_TIME);
@@ -47,10 +49,17 @@ export function GanderGalleryPage() {
   };
   const handleShoot = useCallback((id: number) => {
     setScore(prev => prev + 1);
-    setDucks(prev => prev.filter(d => d.id !== id));
-    setTimeout(() => {
-      setDucks(prev => [...prev, createDuck(Date.now())]);
-    }, 500);
+    setDucks(prev => { 
+      const targetDuck = prev.find(d => d.id === id); 
+      if (!targetDuck) return prev; 
+      const newDucks = prev.map(d => d.id === id ? { ...d, health: d.health - 1 } : d ).filter(d => d.health > 0); 
+      if (targetDuck.health === 1) { 
+        setTimeout(() => { 
+          setDucks(p => [...p, createDuck(Date.now())]); 
+        }, 500); 
+      } 
+      return newDucks; 
+    });
   }, []);
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -68,11 +77,15 @@ export function GanderGalleryPage() {
       setDucks([]);
       return;
     }
+  }, [gameState, timeLeft, score, setOvCoin]);
+
+  useEffect(() => {
+    if (gameState !== 'playing') return;
     const timer = setInterval(() => {
       setTimeLeft(prev => prev - 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [gameState, timeLeft, score]);
+  }, [gameState]);
   return (
     <OVWLayout>
       <div className="text-center animate-fade-in relative z-10">

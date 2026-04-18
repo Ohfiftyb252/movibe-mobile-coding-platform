@@ -13,6 +13,7 @@ interface ZombieInfo {
   id: number;
   initialX: number;
   duration: number;
+  health: number;
 }
 const COST_PER_GAME = 100;
 const INITIAL_LIVES = 3;
@@ -33,6 +34,7 @@ export function ZombieOutbreakPage() {
       id,
       initialX: Math.random() * (window.innerWidth * 0.8) + (window.innerWidth * 0.1),
       duration: Math.max(1.5, 8 - (currentWave * 0.5) - (Math.random() * 2)),
+      health: 3,
     };
   }, []);
   const startGame = () => {
@@ -47,18 +49,18 @@ export function ZombieOutbreakPage() {
   };
   const handleShoot = useCallback((id: number) => {
     setScore(prev => prev + 1);
-    setZombies(prev => prev.filter(z => z.id !== id));
+    setZombies(prev => prev.map(z => z.id === id ? { ...z, health: z.health - 1 } : z ).filter(z => z.health > 0 ));
   }, []);
-  const handleEscape = useCallback((id: number) => {
-    setZombies(prev => prev.filter(z => z.id !== id));
-    setLives(prev => prev - 1);
-  }, []);
+const handleEscape = useCallback((id: number) => {
+  setZombies(prev => prev.filter(z => z.id !== id));
+  setLives(prev => prev - 1);
+}, []);
   useEffect(() => {
     if (gameState !== 'playing' || isSpawning.current) return;
     isSpawning.current = true;
     const zombiesToSpawn = wave * 2 + 3;
     const newHorde = Array.from({ length: zombiesToSpawn }, (_, i) =>
-      createZombie(Date.now() + i + (wave * 1000), wave)
+      createZombie(Date.now() + i * 10, wave)
     );
     setZombies(newHorde);
     toast.info(`WAVE ${wave} STARTING...`);
@@ -88,7 +90,7 @@ export function ZombieOutbreakPage() {
       }
       setZombies([]);
     }
-  }, [lives, gameState, score]);
+  }, [lives, gameState, score, setOvCoin]);
   return (
     <OVWLayout>
       <div className="text-center animate-fade-in relative z-10 pointer-events-none">
