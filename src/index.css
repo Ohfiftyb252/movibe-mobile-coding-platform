@@ -26,14 +26,13 @@
     --radius: 0.5rem;
   }
   .dark {
-    /* O.V. World overrides */
-    --background: 10 5% 8%; /* Gritty Dark Background */
-    --foreground: 200 10% 80%; /* Muted Cyan/Gray Text */
+    --background: 10 5% 8%;
+    --foreground: 200 10% 80%;
   }
 }
 @layer base {
   body {
-    @apply bg-ov-dark text-ov-foreground;
+    @apply bg-ov-dark text-ov-foreground overflow-x-hidden;
   }
 }
 @layer components {
@@ -64,17 +63,28 @@
     text-shadow: -1px 0 #f0f, 1px 0 #0ff;
     animation: glitch-anim-2 3s infinite linear alternate-reverse;
   }
+  /* Retro Polish Effects */
+  .scanline {
+    background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.5) 51%);
+    background-size: 100% 4px;
+    animation: scanline-scroll 0.2s linear infinite;
+  }
+  .vignette {
+    background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
+  }
+}
+@keyframes scanline-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4px; }
 }
 @keyframes glitch-anim-1 {
   0% { clip: rect(42px, 9999px, 44px, 0); }
   5% { clip: rect(12px, 9999px, 60px, 0); }
   10% { clip: rect(40px, 9999px, 42px, 0); }
-  /* ... add more steps ... */
   100% { clip: rect(50px, 9999px, 52px, 0); }
 }
 @keyframes glitch-anim-2 {
   0% { clip: rect(2px, 9999px, 98px, 0); }
-  /* ... add more steps ... */
   100% { clip: rect(90px, 9999px, 92px, 0); }
 }
 @keyframes flicker {

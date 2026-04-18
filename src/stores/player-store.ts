@@ -16,6 +16,15 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number) {
     timeout = setTimeout(later, wait);
   };
 }
+const DEFAULT_PLAYER_STATE: Omit<Player, 'id' | 'name'> = {
+  ovCoin: 0,
+  inventory: { hats: [] },
+  consecutiveLosses: 0,
+  debt: 0,
+  heat: 0,
+  luck: 50,
+  corruption: 0,
+};
 type PlayerState = {
   player: Player | null;
   isLoading: boolean;
@@ -60,17 +69,32 @@ export const usePlayerStore = create<PlayerState>()(
       loadPlayer: async (id) => {
         set({ isLoading: true, error: null });
         try {
-          const player = await api<Player>(`/api/player/${id}`);
-          set({ player, isLoading: false });
+          const rawPlayer = await api<Player>(`/api/player/${id}`);
+          // DEFENSIVE MERGE: Ensure all properties exist even if legacy data is missing them
+          const mergedPlayer: Player = {
+            ...DEFAULT_PLAYER_STATE,
+            ...rawPlayer,
+            inventory: {
+              ...DEFAULT_PLAYER_STATE.inventory,
+              ...(rawPlayer.inventory || {}),
+            }
+          };
+          set({ player: mergedPlayer, isLoading: false });
         } catch (error) {
           set({ error: (error as Error).message, isLoading: false });
         }
       },
       updatePlayer: async (id, updates) => {
-        set((state) => { if (state.player) Object.assign(state.player, updates); });
+        set((state) => { 
+          if (state.player) {
+            Object.assign(state.player, updates); 
+          }
+        });
         try {
-          const updated = await api<Player>(`/api/player/${id}`, { method: 'POST', body: JSON.stringify(updates) });
-          set({ player: updated });
+          await api<Player>(`/api/player/${id}`, { 
+            method: 'POST', 
+            body: JSON.stringify(updates) 
+          });
         } catch (error) {
           console.error(error);
         }
@@ -110,19 +134,19 @@ export const usePlayerStore = create<PlayerState>()(
         debouncedUpdate();
       },
       addHeat: (amount) => {
-        set(state => { if (state.player) state.player.heat = Math.max(0, state.player.heat + amount); });
+        set(state => { if (state.player) state.player.heat = Math.max(0, (state.player.heat ?? 0) + amount); });
         debouncedUpdate();
       },
       adjustLuck: (amount) => {
-        set(state => { if (state.player) state.player.luck = Math.min(100, Math.max(0, state.player.luck + amount)); });
+        set(state => { if (state.player) state.player.luck = Math.min(100, Math.max(0, (state.player.luck ?? 50) + amount)); });
         debouncedUpdate();
       },
       increaseCorruption: (amount) => {
-        set(state => { if (state.player) state.player.corruption = Math.min(100, state.player.corruption + amount); });
+        set(state => { if (state.player) state.player.corruption = Math.min(100, (state.player.corruption ?? 0) + amount); });
         debouncedUpdate();
       },
       addDebt: (amount) => {
-        set(state => { if (state.player) state.player.debt += amount; });
+        set(state => { if (state.player) state.player.debt = (state.player.debt ?? 0) + amount; });
         debouncedUpdate();
       },
     };

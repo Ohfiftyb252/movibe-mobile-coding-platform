@@ -9,6 +9,7 @@ import { ArrowLeft, Coins, TrendingDown, ShieldAlert } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { toast } from 'sonner';
 import { PlayingCard } from '@/components/PlayingCard';
+import { cn } from '@/lib/utils';
 import { createDeck, shuffleDeck, getHandValue, determineWinner, type Deck, type Hand, type GameResult } from '@/lib/game-logic/blackjack';
 type GameState = 'betting' | 'playing' | 'dealer_turn' | 'finished';
 export function CryptoCarnivalPage() {
@@ -31,10 +32,8 @@ export function CryptoCarnivalPage() {
     if (!player || !betAmount || betAmount <= 0) return;
     setIsRugPull(false);
     increaseCorruption(2);
-    // Luck influences initial deck order slightly
     const d = shuffleDeck(createDeck());
-    if (player.luck > 70 && Math.random() < 0.3) {
-      // Rig the first player card to be high value
+    if ((player.luck ?? 50) > 70 && Math.random() < 0.3) {
       const highCardIndex = d.findIndex(c => ['10', 'J', 'Q', 'K', 'A'].includes(c.rank));
       if (highCardIndex > -1) [d[d.length - 1], d[highCardIndex]] = [d[highCardIndex], d[d.length - 1]];
     }
@@ -53,14 +52,13 @@ export function CryptoCarnivalPage() {
     setGameState('finished');
     const bet = Number(betAmount);
     if (!player) return;
-    // Rug pull event based on low luck
-    const rugPullChance = 0.05 + ((100 - player.luck) / 500);
+    const rugPullChance = 0.05 + ((100 - (player.luck ?? 50)) / 500);
     const isActuallyWinning = ['player_win', 'player_blackjack', 'dealer_bust'].includes(result);
     const rugTriggered = isActuallyWinning && Math.random() < rugPullChance;
     if (rugTriggered) {
       setIsRugPull(true);
       setFeedback("RUG PULL! LIQUIDITY DRAINED");
-      setOvCoin(player.ovCoin - bet - 50); // Void payout + penalty
+      setOvCoin(player.ovCoin - bet - 50);
       adjustLuck(-5);
       recordLoss();
       toast.error("RUG PULL ALERT!", { description: "Your profits were liquidated for 'Gas Fees'." });
@@ -160,7 +158,12 @@ export function CryptoCarnivalPage() {
                   <label className="text-[10px] uppercase text-ov-gray">Stake Amount</label>
                   <div className="relative">
                     <Coins className="absolute left-3 top-3 w-4 h-4 text-ov-green" />
-                    <Input type="number" value={betAmount} onChange={(e) => setBetAmount(Number(e.target.value))} className="pl-10 bg-ov-dark/50" />
+                    <input 
+                      type="number" 
+                      value={betAmount} 
+                      onChange={(e) => setBetAmount(Number(e.target.value))} 
+                      className="w-full bg-ov-dark/50 border border-ov-primary/20 rounded-md p-2 pl-10 text-ov-foreground outline-none focus:border-ov-primary transition-colors"
+                    />
                   </div>
                 </div>
                 <Button size="lg" className="w-full" onClick={startNewHand}>OPEN POSITION</Button>
@@ -173,7 +176,7 @@ export function CryptoCarnivalPage() {
                     <Button size="lg" variant="outline" className="w-full border-red-500/50 text-red-500" onClick={handleStand}>SELL (STAND)</Button>
                   </>
                 ) : (
-                  <Button size="lg" className="w-full" onClick={() => { setGameState('betting'); setPlayerHand([]); setDealerHand([]); }}>NEW ROUND</Button>
+                  <Button size="lg" className="w-full" onClick={() => { setGameState('betting'); setPlayerHand([]); setDealerHand([]); setIsRugPull(false); }}>NEW ROUND</Button>
                 )}
               </div>
             )}

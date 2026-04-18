@@ -48,9 +48,8 @@ export function TheGlitchPage() {
     increaseCorruption(1);
     addHeat(2);
     setTimeout(() => {
-      // Logic influenced by Heat (more heat = more near misses/fakeouts)
-      const fakeOutChance = 0.05 + (player.heat / 500);
-      const isActuallyWinning = Math.random() < (0.1 - (player.heat / 2000));
+      const fakeOutChance = 0.05 + ((player.heat ?? 0) / 500);
+      const isActuallyWinning = Math.random() < (0.1 - ((player.heat ?? 0) / 2000));
       const triggeringFakeOut = !isActuallyWinning && Math.random() < fakeOutChance;
       let newReels = [
         Math.floor(Math.random() * SYMBOLS.length),
@@ -58,13 +57,10 @@ export function TheGlitchPage() {
         Math.floor(Math.random() * SYMBOLS.length),
       ];
       if (isActuallyWinning) {
-        const winningSymbolIndex = 3; // 7s
+        const winningSymbolIndex = 3; 
         newReels = [winningSymbolIndex, winningSymbolIndex, winningSymbolIndex];
       } else if (triggeringFakeOut) {
-        newReels = [3, 3, 3]; // Show triple 7s initially
-      } else if (Math.random() < 0.4) {
-        const sym = Math.floor(Math.random() * SYMBOLS.length);
-        newReels = [sym, sym, (sym + 1) % SYMBOLS.length];
+        newReels = [3, 3, 3]; 
       }
       setReels(newReels);
       if (triggeringFakeOut) {
@@ -72,7 +68,7 @@ export function TheGlitchPage() {
         setFeedback("JACKPOT!! WINNER!");
         setGameResult('win');
         setTimeout(() => {
-          setReels([3, 3, 2]); // Last reel glitches to a skull
+          setReels([3, 3, 2]); 
           setGameResult('loss');
           setIsFakeOut(false);
           setFeedback("ERROR: LMAO_NOPE");
@@ -151,18 +147,18 @@ export function TheGlitchPage() {
                 className="text-center text-xl h-14 bg-ov-dark border-ov-primary/20"
               />
             </div>
-            <Button 
-              size="lg" 
-              onClick={handleSpin} 
-              disabled={isSpinning || !betAmount} 
+            <Button
+              size="lg"
+              onClick={handleSpin}
+              disabled={isSpinning || !betAmount}
               className="w-full h-16 text-2xl font-display uppercase tracking-widest relative overflow-hidden group"
             >
               <Zap className="absolute left-4 opacity-20 group-hover:opacity-100 transition-opacity" />
               {isSpinning ? 'SPINNING...' : 'PULL LEVER'}
             </Button>
-            {player && player.consecutiveLosses >= 5 && (
+            {(player.consecutiveLosses ?? 0) >= 5 && (
               <Button onClick={handleSmash} disabled={isSpinning} variant="destructive" className="w-full h-12 uppercase animate-pulse">
-                <Hammer className="mr-2 w-4 h-4" /> Smash Machine (Lose Heat)
+                <Hammer className="mr-2 w-4 h-4" /> Smash Machine (Emergency Cash / High Heat)
               </Button>
             )}
           </div>
