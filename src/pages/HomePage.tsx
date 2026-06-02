@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dices, Gem, Trash2, Bird, Crosshair, Bot, Biohazard, Users, Terminal, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 const locations = [
   {
     to: '/location/back-alley',
@@ -67,7 +68,7 @@ export function HomePage() {
     navigator.clipboard.writeText(window.location.href);
     toast.success("URL PERSISTED", { description: "Tell them what you saw. Spread the plague." });
   };
-
+  const currentTragedyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   return (
     <OVWLayout>
       <div className="max-w-7xl mx-auto">
@@ -88,17 +89,20 @@ export function HomePage() {
              </CardHeader>
              <CardContent className="py-4">
                 <div className="flex items-center justify-between text-xs font-mono text-ov-gray">
-                   <span>[LATEST] User hit jackpot... lost it all in 2 spins.</span>
+                   <span>[{currentTragedyTime}] User hit jackpot... lost it all in 2 spins.</span>
                    <Link to="/location/glitch-square" className="text-ov-primary hover:underline">VIEW FULL FEED</Link>
                 </div>
              </CardContent>
           </Card>
-          <Card className="bg-ov-primary/5 border-ov-primary/20 flex flex-col justify-center p-4 relative group">
-             <Button onClick={handleShare} variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-ov-primary">
+          <Card className="bg-ov-primary/5 border-ov-primary/20 flex flex-col justify-center p-4 relative group overflow-hidden">
+             <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none" />
+             <Button onClick={handleShare} variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-ov-primary z-10">
                <Share2 className="w-4 h-4" />
              </Button>
              <p className="text-[10px] uppercase text-ov-primary font-bold tracking-widest">Global Status</p>
-             <p className="text-xl text-ov-foreground font-display">UNSTABLE</p>
+             <p className="text-xl text-ov-foreground font-display">
+               <span className="animate-flicker text-red-500 drop-shadow-[0_0_8px_rgba(239,44,44,0.6)]">UNSTABLE</span>
+             </p>
           </Card>
         </div>
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">

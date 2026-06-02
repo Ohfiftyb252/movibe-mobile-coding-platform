@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { usePlayerStore } from '@/stores/player-store';
 import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
@@ -176,7 +176,7 @@ export function OVWLayout({ children }: { children: React.ReactNode }) {
       )}>
         <SatiricalTicker />
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link to="/" className="font-display text-2xl md:text-3xl uppercase glitch-text" data-text="O.V.W">O.V.W</Link>
+          <Link to="/" className="font-display text-xl md:text-2xl uppercase glitch-text" data-text="O.V. WORLD">O.V. WORLD</Link>
           <PlayerStats />
         </div>
       </header>

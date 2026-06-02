@@ -1,15 +1,13 @@
-import type { User, Chat, ChatMessage } from './types';
-
-export const MOCK_USERS: User[] = [
-  { id: 'u1', name: 'User A' },
-  { id: 'u2', name: 'User B' }
-];
-
-export const MOCK_CHATS: Chat[] = [
-  { id: 'c1', title: 'General' },
-];
-
-export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
-  { id: 'm1', chatId: 'c1', userId: 'u1', text: 'Hello', ts: Date.now() },
-];
-  
+/**
+ * O.V. World Mock Data
+ * Legacy template data (Users, Chats) removed to reflect the satirical dive bar architecture.
+ */
+import type { Player } from './types';
+export const MOCK_PLAYER_TEMPLATE: Partial<Player> = {
+  name: 'Degenerate_01',
+  ovCoin: 1000,
+  debt: 0,
+  luck: 50,
+  corruption: 0,
+  title: 'Fresh Meat'
+};
