@@ -15,7 +15,14 @@ interface SoundFile {
   category: SoundCategory;
   mark: SoundMark;
   url: string | null;
-  duration?: number;
+  size: number;
+}
+
+interface PersistedSound {
+  id: string;
+  name: string;
+  category: SoundCategory;
+  mark: SoundMark;
   size: number;
 }
 
@@ -31,13 +38,34 @@ interface Receipt {
   categories: Record<string, number>;
 }
 
+// ─── LocalStorage helpers ─────────────────────────────────────────────────────
+
+const LS_MARKS_KEY = 'desklab:marks';
+const LS_PACK_KEY = 'desklab:packName';
+
+function loadPersistedMarks(): Map<string, { mark: SoundMark; category: SoundCategory }> {
+  try {
+    const raw = localStorage.getItem(LS_MARKS_KEY);
+    if (!raw) return new Map();
+    const arr: PersistedSound[] = JSON.parse(raw);
+    return new Map(arr.map(s => [s.name + ':' + s.size, { mark: s.mark, category: s.category }]));
+  } catch {
+    return new Map();
+  }
+}
+
+function savePersistedMarks(sounds: SoundFile[]) {
+  const arr: PersistedSound[] = sounds.map(({ id, name, category, mark, size }) => ({ id, name, category, mark, size }));
+  localStorage.setItem(LS_MARKS_KEY, JSON.stringify(arr));
+}
+
 // ─── Sound classifier ─────────────────────────────────────────────────────────
 
 const DRUM_KEYWORDS = ['kick', 'snare', 'hat', 'hihat', 'hi-hat', 'clap', 'rim', 'tom', 'cymbal', 'crash', 'ride', 'perc', 'drum'];
 const BASS_KEYWORDS = ['808', 'sub', 'bass', 'slide', 'glide'];
 const LOOP_KEYWORDS = ['loop', 'phrase', 'pattern', 'full', 'stem'];
 const CHOP_KEYWORDS = ['chop', 'slice', 'hit', 'shot', 'stab', 'piece'];
-const FX_KEYWORDS = ['riser', 'impact', 'sweep', 'noise', 'fx', 'effect', 'vox', 'vocal', 'transition', 'down', 'upfx', 'swell'];
+const FX_KEYWORDS = ['riser', 'impact', 'sweep', 'noise', 'fx', 'effect', 'vox', 'vocal', 'transition', 'upfx', 'swell'];
 
 function classifySound(filename: string): SoundCategory {
   const lower = filename.toLowerCase();
@@ -46,7 +74,6 @@ function classifySound(filename: string): SoundCategory {
   if (LOOP_KEYWORDS.some(k => lower.includes(k))) return 'Loops';
   if (FX_KEYWORDS.some(k => lower.includes(k))) return 'FX';
   if (CHOP_KEYWORDS.some(k => lower.includes(k))) return 'Chops';
-  if (lower.endsWith('.wav') || lower.endsWith('.mp3') || lower.endsWith('.aiff') || lower.endsWith('.flac')) return 'Uncategorized';
   return 'Uncategorized';
 }
 
@@ -54,10 +81,41 @@ function isAudioFile(name: string) {
   return /\.(wav|mp3|aif|aiff|flac|ogg|m4a)$/i.test(name);
 }
 
+// Dedup key: name + file size catches both same-name and renamed duplicates
+function dedupKey(name: string, size: number) {
+  return `${name}:${size}`;
+}
+
 async function hashFiles(files: SoundFile[]): Promise<string> {
   const str = files.map(f => f.name + f.size).join('|');
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 12).toUpperCase();
+}
+
+// ─── Export validation ────────────────────────────────────────────────────────
+
+interface ValidationResult {
+  ok: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+function validateExport(packName: string, sounds: SoundFile[]): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!packName.trim()) errors.push('Pack name is required.');
+
+  const exportable = sounds.filter(s => s.mark !== 'Trash');
+  const selected = sounds.filter(s => s.mark === 'Fire' || s.mark === 'Keep');
+
+  if (exportable.length === 0) errors.push('No sounds to export — all files are trashed or nothing was loaded.');
+  else if (selected.length === 0) warnings.push('No sounds marked Fire or Keep — exporting all non-trashed files.');
+
+  const allUncategorized = exportable.length > 0 && exportable.every(s => s.category === 'Uncategorized');
+  if (allUncategorized) warnings.push('Every file is Uncategorized. Consider reclassifying sounds before exporting.');
+
+  return { ok: errors.length === 0, errors, warnings };
 }
 
 // ─── Category colors ──────────────────────────────────────────────────────────
@@ -81,8 +139,6 @@ const MARK_COLORS: Record<NonNullable<SoundMark>, string> = {
   'Trash':  'bg-red-700 text-white',
 };
 
-// ─── Keyboard shortcuts ───────────────────────────────────────────────────────
-
 const SHORTCUTS: Record<string, SoundMark> = {
   'k': 'Keep',
   'f': 'Fire',
@@ -95,25 +151,37 @@ const SHORTCUTS: Record<string, SoundMark> = {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function DeskLabPage() {
-  const [sounds, setSounds] = useState<SoundFile[]>([]);
+  const [sounds, setSoundsRaw] = useState<SoundFile[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState<SoundCategory | 'All'>('All');
   const [filterMark, setFilterMark] = useState<SoundMark | 'All'>('All');
   const [isDragging, setIsDragging] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [packType, setPackType] = useState<PackType>('Drum Kit');
-  const [packName, setPackName] = useState('OHFIFTYB_BoomTrap_Vol1');
+  const [packName, setPackName] = useState(() => localStorage.getItem(LS_PACK_KEY) || 'OHFIFTYB_BoomTrap_Vol1');
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [activeTab, setActiveTab] = useState<'library' | 'pack' | 'export'>('library');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [validationMsg, setValidationMsg] = useState<ValidationResult | null>(null);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropRef = useRef<HTMLDivElement>(null);
 
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  // Wrap setSounds to persist marks on every change
+  const setSounds = useCallback((updater: SoundFile[] | ((prev: SoundFile[]) => SoundFile[])) => {
+    setSoundsRaw(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      savePersistedMarks(next);
+      return next;
+    });
+  }, []);
 
-  // ── Play selected sound ────────────────────────────────────────────────────
+  // Persist pack name
+  useEffect(() => {
+    localStorage.setItem(LS_PACK_KEY, packName);
+  }, [packName]);
+
+  // ── Play ──────────────────────────────────────────────────────────────────
   const playSound = useCallback((sound: SoundFile) => {
     if (!audioRef.current) return;
     if (!sound.url) {
@@ -125,7 +193,7 @@ export function DeskLabPage() {
     }
     audioRef.current.play();
     setIsPlaying(true);
-  }, []);
+  }, [setSounds]);
 
   const stopSound = useCallback(() => {
     if (audioRef.current) {
@@ -135,41 +203,43 @@ export function DeskLabPage() {
     }
   }, []);
 
-  // ── Select + play ──────────────────────────────────────────────────────────
   const selectSound = useCallback((sound: SoundFile) => {
     setSelectedId(sound.id);
     playSound(sound);
   }, [playSound]);
 
-  // ── Process dropped/selected files ────────────────────────────────────────
+  // ── Import files ──────────────────────────────────────────────────────────
   const processFiles = useCallback(async (files: File[]) => {
     setScanning(true);
+    const persisted = loadPersistedMarks();
     const audioFiles = files.filter(f => isAudioFile(f.name));
-    const newSounds: SoundFile[] = audioFiles.map(file => ({
-      id: `${file.name}-${file.lastModified}-${Math.random()}`,
-      name: file.name,
-      file,
-      category: classifySound(file.name),
-      mark: null,
-      url: null,
-      size: file.size,
-    }));
+
+    const newSounds: SoundFile[] = audioFiles.map(file => {
+      const key = dedupKey(file.name, file.size);
+      const saved = persisted.get(key);
+      return {
+        id: `${file.name}-${file.size}-${file.lastModified}`,
+        name: file.name,
+        file,
+        category: saved?.category ?? classifySound(file.name),
+        mark: saved?.mark ?? null,
+        url: null,
+        size: file.size,
+      };
+    });
+
     setSounds(prev => {
-      const existing = new Set(prev.map(s => s.name + s.size));
-      const unique = newSounds.filter(s => !existing.has(s.name + s.size));
+      const existing = new Set(prev.map(s => dedupKey(s.name, s.size)));
+      const unique = newSounds.filter(s => !existing.has(dedupKey(s.name, s.size)));
       return [...prev, ...unique];
     });
     setScanning(false);
-  }, []);
+  }, [setSounds]);
 
-  // ── Directory reading via webkitdirectory ─────────────────────────────────
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      processFiles(Array.from(e.target.files));
-    }
+    if (e.target.files) processFiles(Array.from(e.target.files));
   }, [processFiles]);
 
-  // ── Drag and drop ─────────────────────────────────────────────────────────
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -181,7 +251,6 @@ export function DeskLabPage() {
     e.preventDefault();
     setIsDragging(false);
     setScanning(true);
-
     const collected: File[] = [];
 
     async function traverseEntry(entry: FileSystemEntry) {
@@ -193,7 +262,7 @@ export function DeskLabPage() {
         const reader = (entry as FileSystemDirectoryEntry).createReader();
         await new Promise<void>(res => {
           reader.readEntries(async entries => {
-            for (const e of entries) await traverseEntry(e);
+            for (const ent of entries) await traverseEntry(ent);
             res();
           });
         });
@@ -204,7 +273,6 @@ export function DeskLabPage() {
       const entry = item.webkitGetAsEntry();
       if (entry) await traverseEntry(entry);
     }
-
     processFiles(collected);
   }, [processFiles]);
 
@@ -226,7 +294,11 @@ export function DeskLabPage() {
       }
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
-        const filtered = filteredSounds;
+        const filtered = sounds.filter(s => {
+          if (filterCat !== 'All' && s.category !== filterCat) return false;
+          if (filterMark !== 'All' && s.mark !== filterMark) return false;
+          return true;
+        });
         const idx = filtered.findIndex(s => s.id === selectedId);
         const next = e.key === 'ArrowDown' ? Math.min(idx + 1, filtered.length - 1) : Math.max(idx - 1, 0);
         if (filtered[next]) selectSound(filtered[next]);
@@ -234,21 +306,18 @@ export function DeskLabPage() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedId, sounds, isPlaying, playSound, stopSound, selectSound]);
+  }, [selectedId, sounds, isPlaying, filterCat, filterMark, playSound, stopSound, selectSound, setSounds]);
 
-  // ── Mark selected sound ────────────────────────────────────────────────────
-  const markSound = (id: string, mark: SoundMark) => {
+  const markSound = useCallback((id: string, mark: SoundMark) => {
     setSounds(prev => prev.map(s => s.id === id ? { ...s, mark } : s));
-  };
+  }, [setSounds]);
 
-  // ── Filtered view ──────────────────────────────────────────────────────────
   const filteredSounds = sounds.filter(s => {
     if (filterCat !== 'All' && s.category !== filterCat) return false;
     if (filterMark !== 'All' && s.mark !== filterMark) return false;
     return true;
   });
 
-  // ── Category counts ────────────────────────────────────────────────────────
   const catCounts = sounds.reduce<Record<string, number>>((acc, s) => {
     acc[s.category] = (acc[s.category] || 0) + 1;
     return acc;
@@ -258,31 +327,40 @@ export function DeskLabPage() {
     Fire: sounds.filter(s => s.mark === 'Fire').length,
     Keep: sounds.filter(s => s.mark === 'Keep').length,
     Trash: sounds.filter(s => s.mark === 'Trash').length,
-    Unmarked: sounds.filter(s => !s.mark).length,
   };
 
   // ── Build + export ZIP ─────────────────────────────────────────────────────
   const buildAndExport = async () => {
+    const validation = validateExport(packName, sounds);
+    if (!validation.ok) {
+      setValidationMsg(validation);
+      return;
+    }
+    if (validation.warnings.length > 0) {
+      setValidationMsg(validation);
+      // Warnings don't block — proceed after showing them
+    } else {
+      setValidationMsg(null);
+    }
+
     const kept = sounds.filter(s => s.mark !== 'Trash');
     const zip = new JSZip();
 
     const folders: Record<string, SoundFile[]> = {
-      '01_Drums': kept.filter(s => s.category === 'Drums'),
-      '02_808s': kept.filter(s => s.category === '808s'),
-      '03_Loops': kept.filter(s => s.category === 'Loops'),
-      '04_Chops': kept.filter(s => s.category === 'Chops'),
-      '05_FX': kept.filter(s => s.category === 'FX'),
+      '01_Drums':         kept.filter(s => s.category === 'Drums'),
+      '02_808s':          kept.filter(s => s.category === '808s'),
+      '03_Loops':         kept.filter(s => s.category === 'Loops'),
+      '04_Chops':         kept.filter(s => s.category === 'Chops'),
+      '05_FX':            kept.filter(s => s.category === 'FX'),
       '06_Uncategorized': kept.filter(s => s.category === 'Uncategorized'),
     };
 
     for (const [folder, files] of Object.entries(folders)) {
-      if (files.length === 0) continue;
       for (const sf of files) {
         zip.file(`${packName}/${folder}/${sf.name}`, sf.file);
       }
     }
 
-    // Receipt
     const hash = await hashFiles(kept);
     const rec: Receipt = {
       packName,
@@ -293,14 +371,11 @@ export function DeskLabPage() {
       exportHash: hash,
       usageNotes: 'For beat production, film, and commercial use. Do not resell unaltered.',
       ohfiftybTag: '@ohfiftyb252 | OHFIFTYB Sounds',
-      categories: Object.fromEntries(
-        Object.entries(folders).map(([k, v]) => [k, v.length])
-      ),
+      categories: Object.fromEntries(Object.entries(folders).map(([k, v]) => [k, v.length])),
     };
     setReceipt(rec);
-    zip.file(`${packName}/08_Receipt/receipt.json`, JSON.stringify(rec, null, 2));
 
-    // License
+    zip.file(`${packName}/08_Receipt/receipt.json`, JSON.stringify(rec, null, 2));
     zip.file(`${packName}/07_License/license.txt`,
 `OHFIFTYB STANDARD LICENSE
 Pack: ${packName}
@@ -324,14 +399,12 @@ Contact: @ohfiftyb252
     saveAs(blob, `${packName}.zip`);
   };
 
-  // ── Generate receipt without export ───────────────────────────────────────
   const generateReceipt = async () => {
+    const validation = validateExport(packName, sounds);
+    if (!validation.ok) { setValidationMsg(validation); return; }
+    setValidationMsg(validation.warnings.length > 0 ? validation : null);
     const kept = sounds.filter(s => s.mark !== 'Trash');
     const hash = await hashFiles(kept);
-    const catCats = sounds.reduce<Record<string, number>>((acc, s) => {
-      acc[s.category] = (acc[s.category] || 0) + 1;
-      return acc;
-    }, {});
     setReceipt({
       packName,
       dateCreated: new Date().toISOString(),
@@ -341,7 +414,7 @@ Contact: @ohfiftyb252
       exportHash: hash,
       usageNotes: 'For beat production, film, and commercial use.',
       ohfiftybTag: '@ohfiftyb252 | OHFIFTYB Sounds',
-      categories: catCats,
+      categories: sounds.reduce<Record<string, number>>((a, s) => { a[s.category] = (a[s.category] || 0) + 1; return a; }, {}),
     });
     setActiveTab('export');
   };
@@ -351,15 +424,16 @@ Contact: @ohfiftyb252
     setSounds([]);
     setSelectedId(null);
     setReceipt(null);
+    setValidationMsg(null);
+    localStorage.removeItem(LS_MARKS_KEY);
   };
 
-  const selectedSound = sounds.find(s => s.id === selectedId) || null;
+  const selectedSound = sounds.find(s => s.id === selectedId) ?? null;
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-mono flex flex-col">
-      {/* Hidden audio element */}
       <audio
         ref={audioRef}
         onEnded={() => setIsPlaying(false)}
@@ -367,7 +441,7 @@ Contact: @ohfiftyb252
         onPlay={() => setIsPlaying(true)}
       />
 
-      {/* ── Header ── */}
+      {/* Header */}
       <header className="border-b border-zinc-800 px-6 py-3 flex items-center justify-between bg-zinc-900">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
@@ -389,7 +463,7 @@ Contact: @ohfiftyb252
 
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Left sidebar: category filters ── */}
+        {/* Left sidebar */}
         <aside className="w-44 border-r border-zinc-800 bg-zinc-900 flex flex-col py-4 gap-1 shrink-0">
           <div className="px-3 pb-2 text-xs text-zinc-600 uppercase tracking-wider">Category</div>
           {(['All', 'Drums', '808s', 'Loops', 'Chops', 'FX', 'Trash', 'Uncategorized'] as const).map(cat => (
@@ -443,10 +517,10 @@ Contact: @ohfiftyb252
           </div>
         </aside>
 
-        {/* ── Main area ── */}
+        {/* Main area */}
         <main className="flex-1 flex flex-col overflow-hidden">
 
-          {/* ── Tab bar ── */}
+          {/* Tab bar */}
           <div className="border-b border-zinc-800 px-4 flex gap-0 bg-zinc-900">
             {(['library', 'pack', 'export'] as const).map(tab => (
               <button
@@ -463,14 +537,12 @@ Contact: @ohfiftyb252
             ))}
           </div>
 
-          {/* ── LIBRARY TAB ── */}
+          {/* LIBRARY TAB */}
           {activeTab === 'library' && (
             <div className="flex flex-1 overflow-hidden">
-              {/* Drop zone + file list */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 {sounds.length === 0 ? (
                   <div
-                    ref={dropRef}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
@@ -489,7 +561,7 @@ Contact: @ohfiftyb252
                       ref={fileInputRef}
                       type="file"
                       multiple
-                      // @ts-ignore
+                      // @ts-ignore — non-standard but widely supported
                       webkitdirectory=""
                       className="hidden"
                       onChange={handleFileInput}
@@ -498,7 +570,6 @@ Contact: @ohfiftyb252
                   </div>
                 ) : (
                   <>
-                    {/* Drop zone header when files exist */}
                     <div
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
@@ -521,7 +592,6 @@ Contact: @ohfiftyb252
                       />
                     </div>
 
-                    {/* Sound list */}
                     <div className="flex-1 overflow-y-auto px-4 pb-4">
                       <div className="text-xs text-zinc-600 mb-2">
                         {filteredSounds.length} of {sounds.length} sounds
@@ -543,7 +613,7 @@ Contact: @ohfiftyb252
                 )}
               </div>
 
-              {/* ── Right: player + mark panel ── */}
+              {/* Right panel: player + mark */}
               {selectedSound && (
                 <div className="w-64 border-l border-zinc-800 bg-zinc-900 flex flex-col p-4 gap-4 shrink-0">
                   <div>
@@ -556,17 +626,13 @@ Contact: @ohfiftyb252
                     {selectedSound.category}
                   </div>
 
-                  {/* Playback */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => isPlaying ? stopSound() : playSound(selectedSound)}
-                      className="flex-1 py-2 text-xs rounded bg-zinc-800 hover:bg-zinc-700 transition-colors"
-                    >
-                      {isPlaying ? '⏹ Stop' : '▶ Play'}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => isPlaying ? stopSound() : playSound(selectedSound)}
+                    className="w-full py-2 text-xs rounded bg-zinc-800 hover:bg-zinc-700 transition-colors"
+                  >
+                    {isPlaying ? '⏹ Stop' : '▶ Play'}
+                  </button>
 
-                  {/* Mark buttons */}
                   <div>
                     <div className="text-xs text-zinc-600 mb-2 uppercase tracking-wider">Mark</div>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -575,9 +641,7 @@ Contact: @ohfiftyb252
                           key={mark}
                           onClick={() => markSound(selectedSound.id, selectedSound.mark === mark ? null : mark)}
                           className={`py-1.5 text-xs rounded transition-colors font-medium ${
-                            selectedSound.mark === mark
-                              ? MARK_COLORS[mark]
-                              : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                            selectedSound.mark === mark ? MARK_COLORS[mark] : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                           }`}
                         >
                           {mark}
@@ -586,7 +650,6 @@ Contact: @ohfiftyb252
                     </div>
                   </div>
 
-                  {/* Category override */}
                   <div>
                     <div className="text-xs text-zinc-600 mb-2 uppercase tracking-wider">Reclassify</div>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -595,9 +658,7 @@ Contact: @ohfiftyb252
                           key={cat}
                           onClick={() => setSounds(prev => prev.map(s => s.id === selectedSound.id ? { ...s, category: cat } : s))}
                           className={`py-1 text-xs rounded transition-colors ${
-                            selectedSound.category === cat
-                              ? CAT_COLORS[cat]
-                              : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                            selectedSound.category === cat ? CAT_COLORS[cat] : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
                           }`}
                         >
                           {cat}
@@ -616,7 +677,7 @@ Contact: @ohfiftyb252
             </div>
           )}
 
-          {/* ── PACK BUILDER TAB ── */}
+          {/* PACK BUILDER TAB */}
           {activeTab === 'pack' && (
             <div className="flex-1 overflow-y-auto p-6">
               <div className="max-w-2xl mx-auto space-y-6">
@@ -625,18 +686,37 @@ Contact: @ohfiftyb252
                   <p className="text-xs text-zinc-500">Configure and auto-assemble your sound pack</p>
                 </div>
 
-                {/* Pack name */}
+                {/* Validation messages */}
+                {validationMsg && (
+                  <div className="space-y-2">
+                    {validationMsg.errors.map(e => (
+                      <div key={e} className="flex gap-2 items-start text-xs bg-red-950/50 border border-red-800 rounded px-3 py-2 text-red-300">
+                        <span className="shrink-0">✖</span> {e}
+                      </div>
+                    ))}
+                    {validationMsg.warnings.map(w => (
+                      <div key={w} className="flex gap-2 items-start text-xs bg-yellow-950/40 border border-yellow-800 rounded px-3 py-2 text-yellow-300">
+                        <span className="shrink-0">⚠</span> {w}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div>
                   <label className="text-xs text-zinc-400 uppercase tracking-wider block mb-2">Pack Name</label>
                   <input
                     type="text"
                     value={packName}
-                    onChange={e => setPackName(e.target.value.replace(/\s+/g, '_'))}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-orange-500"
+                    onChange={e => {
+                      setPackName(e.target.value.replace(/\s+/g, '_'));
+                      setValidationMsg(null);
+                    }}
+                    className={`w-full bg-zinc-800 border rounded px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-orange-500 ${
+                      validationMsg?.errors.some(e => e.includes('Pack name')) ? 'border-red-600' : 'border-zinc-700'
+                    }`}
                   />
                 </div>
 
-                {/* Pack type */}
                 <div>
                   <label className="text-xs text-zinc-400 uppercase tracking-wider block mb-2">Pack Type</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -656,20 +736,17 @@ Contact: @ohfiftyb252
                   </div>
                 </div>
 
-                {/* Preview what will be included */}
                 <div className="border border-zinc-800 rounded-lg p-4">
                   <div className="text-xs text-zinc-400 uppercase tracking-wider mb-3">Pack Contents Preview</div>
                   <PackContentsPreview sounds={sounds} />
                 </div>
 
-                {/* Sound stats */}
                 <div className="grid grid-cols-3 gap-3">
                   <StatCard label="Total Sounds" value={sounds.length} color="zinc" />
                   <StatCard label="Fire Sounds" value={markedCounts.Fire} color="orange" />
                   <StatCard label="Ready to Export" value={sounds.filter(s => s.mark !== 'Trash').length} color="green" />
                 </div>
 
-                {/* Build button */}
                 <div className="flex gap-3">
                   <button
                     onClick={buildAndExport}
@@ -694,7 +771,7 @@ Contact: @ohfiftyb252
             </div>
           )}
 
-          {/* ── EXPORT TAB ── */}
+          {/* EXPORT TAB */}
           {activeTab === 'export' && (
             <div className="flex-1 overflow-y-auto p-6">
               <div className="max-w-2xl mx-auto space-y-6">
@@ -703,42 +780,17 @@ Contact: @ohfiftyb252
                   <p className="text-xs text-zinc-500">Platform-ready export options and receipt</p>
                 </div>
 
-                {/* Export destination buttons */}
                 <div className="grid grid-cols-2 gap-3">
-                  <ExportButton
-                    icon="🎵"
-                    label="BeatStars Prep"
-                    desc="MP3, WAV, tags"
-                    onClick={buildAndExport}
-                    disabled={sounds.length === 0}
-                  />
-                  <ExportButton
-                    icon="💰"
-                    label="Gumroad Pack"
-                    desc="ZIP + license"
-                    onClick={buildAndExport}
-                    disabled={sounds.length === 0}
-                  />
-                  <ExportButton
-                    icon="⚗️"
-                    label="Mutant Stack Lab"
-                    desc="Cleaned kit"
-                    onClick={buildAndExport}
-                    disabled={sounds.length === 0}
-                  />
-                  <ExportButton
-                    icon="✂️"
-                    label="ChopZip"
-                    desc="Source samples"
-                    onClick={buildAndExport}
-                    disabled={sounds.length === 0}
-                  />
+                  <ExportButton icon="🎵" label="BeatStars Prep" desc="MP3, WAV, tags" onClick={buildAndExport} disabled={sounds.length === 0} />
+                  <ExportButton icon="💰" label="Gumroad Pack" desc="ZIP + license" onClick={buildAndExport} disabled={sounds.length === 0} />
+                  <ExportButton icon="⚗️" label="Mutant Stack Lab" desc="Cleaned kit" onClick={buildAndExport} disabled={sounds.length === 0} />
+                  <ExportButton icon="✂️" label="ChopZip" desc="Source samples" onClick={buildAndExport} disabled={sounds.length === 0} />
                   <ExportButton
                     icon="🤖"
                     label="Suno Prompt"
                     desc="Genre + mood seed"
                     onClick={() => {
-                      const prompt = `OHFIFTYB ${packName.replace(/_/g,' ')} — dark trap, hard 808s, crisp drums, melodic tension. BPM: 140–150. Key: minor. Mood: cinematic, street, flex.`;
+                      const prompt = `OHFIFTYB ${packName.replace(/_/g, ' ')} — dark trap, hard 808s, crisp drums, melodic tension. BPM: 140–150. Key: minor. Mood: cinematic, street, flex.`;
                       navigator.clipboard.writeText(prompt);
                       alert('Suno prompt copied to clipboard!');
                     }}
@@ -749,7 +801,8 @@ Contact: @ohfiftyb252
                     label="Share Sheet"
                     desc="Sales page text"
                     onClick={() => {
-                      const text = `🔥 ${packName.replace(/_/g,' ')} — by OHFIFTYB\n\n${sounds.filter(s=>s.mark!=='Trash').length} sounds. Drums, 808s, loops, chops, FX.\n\nGet it: [link] | @ohfiftyb252`;
+                      const count = sounds.filter(s => s.mark !== 'Trash').length;
+                      const text = `🔥 ${packName.replace(/_/g, ' ')} — by OHFIFTYB\n\n${count} sounds. Drums, 808s, loops, chops, FX.\n\nGet it: [link] | @ohfiftyb252`;
                       navigator.clipboard.writeText(text);
                       alert('Sales copy copied to clipboard!');
                     }}
@@ -757,7 +810,6 @@ Contact: @ohfiftyb252
                   />
                 </div>
 
-                {/* Pricing reference */}
                 <div className="border border-zinc-800 rounded-lg p-4">
                   <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Suggested Pricing</div>
                   <div className="space-y-2">
@@ -775,7 +827,6 @@ Contact: @ohfiftyb252
                   </div>
                 </div>
 
-                {/* Receipt */}
                 {receipt ? (
                   <div className="border border-zinc-800 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
@@ -835,21 +886,15 @@ function SoundRow({
       }`}
     >
       <span className="text-zinc-700 text-xs w-6 shrink-0">{index + 1}</span>
-
-      {/* Play indicator */}
       <span className="w-4 text-xs shrink-0">
-        {isPlaying ? <span className="text-orange-400">▶</span> : <span className="text-zinc-700 group-hover:text-zinc-500">▷</span>}
+        {isPlaying
+          ? <span className="text-orange-400">▶</span>
+          : <span className="text-zinc-700 group-hover:text-zinc-500">▷</span>}
       </span>
-
-      {/* Filename */}
       <span className="flex-1 text-xs text-zinc-300 truncate">{sound.name}</span>
-
-      {/* Category badge */}
       <span className={`text-xs px-1.5 py-0.5 rounded border shrink-0 ${CAT_COLORS[sound.category]}`}>
         {sound.category}
       </span>
-
-      {/* Mark badge */}
       {sound.mark && (
         <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 font-medium ${MARK_COLORS[sound.mark]}`}>
           {sound.mark}
@@ -872,7 +917,9 @@ function PackContentsPreview({ sounds }: { sounds: SoundFile[] }) {
 
   return (
     <div className="space-y-1 text-xs font-mono">
-      <div className="text-zinc-500">{kept.length > 0 ? sounds.filter(s=>s.mark!=='Trash').length + ' files ready' : 'No sounds loaded'}</div>
+      <div className="text-zinc-500">
+        {kept.length > 0 ? `${kept.length} files ready` : 'No sounds loaded'}
+      </div>
       {cats.map(([folder, cat]) => {
         const count = kept.filter(s => s.category === cat).length;
         if (count === 0) return null;
@@ -898,7 +945,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   };
   return (
     <div className="border border-zinc-800 rounded-lg p-3 bg-zinc-900">
-      <div className={`text-2xl font-bold ${colorMap[color] || 'text-zinc-300'}`}>{value}</div>
+      <div className={`text-2xl font-bold ${colorMap[color] ?? 'text-zinc-300'}`}>{value}</div>
       <div className="text-xs text-zinc-600 mt-0.5">{label}</div>
     </div>
   );
