@@ -17,6 +17,7 @@ import { GanderGalleryPage } from '@/pages/GanderGalleryPage';
 import { TheGlitchPage } from '@/pages/TheGlitchPage';
 import { ZombieOutbreakPage } from '@/pages/ZombieOutbreakPage';
 import { GlitchSquarePage } from '@/pages/GlitchSquarePage';
+import { DeskLabPage } from '@/pages/DeskLabPage';
 const router = createBrowserRouter([
   { path: "/", element: <HomePage />, errorElement: <RouteErrorBoundary /> },
   { path: "/location/back-alley", element: <BackAlleyPage />, errorElement: <RouteErrorBoundary /> },
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
   { path: "/location/zombie-outbreak", element: <ZombieOutbreakPage />, errorElement: <RouteErrorBoundary /> },
   { path: "/location/glitch-square", element: <GlitchSquarePage />, errorElement: <RouteErrorBoundary /> },
   { path: "/inventory", element: <InventoryPage />, errorElement: <RouteErrorBoundary /> },
+  { path: "/desklab", element: <DeskLabPage />, errorElement: <RouteErrorBoundary /> },
 ]);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
